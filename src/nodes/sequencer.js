@@ -1,7 +1,6 @@
+import { useCallback, useEffect, useState } from "react";
+import { b } from '../scheduler/scheduler';
 import { StepSequencer } from "../scheduler/sequencers";
-import { Node } from "./node";
-import { b, s, p } from '../scheduler/scheduler';
-import { useEffect, useCallback, useState } from "react";
 
 const TogglableBox = ({isToggled, toggle}) =>
     <div style={{

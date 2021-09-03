@@ -1,5 +1,5 @@
 import { Button } from "antd";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { globalScheduler, s, useOnGlobalSchedulerStart, useOnGlobalSchedulerStop } from "../scheduler/scheduler";
 
 

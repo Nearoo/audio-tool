@@ -1,19 +1,18 @@
-import { Button, Card, Col, Input, Row, Space } from 'antd';
+import { Button, Card, Col, Input, Row } from 'antd';
 import Modal from 'antd/lib/modal/Modal';
-import Search from 'antd/lib/transfer/search';
 import _ from 'lodash';
 import { Component } from 'react';
 import ReactFlow, { Background, Controls, MiniMap, ReactFlowProvider } from 'react-flow-renderer';
-import { Comment } from '../nodes/comment';
+import { globalAudioGraph } from '../graph/audio';
+import { globalBangGraph } from '../graph/bang';
+import { AudioEdge, BangEdge } from '../graph/edges';
 import { getAllNodesAsReactFlowElements, insideNodeContainer } from '../graph/nodeContainer';
+import { AudioOut } from '../nodes/audioOut';
+import { Comment } from '../nodes/comment';
 import { Sampler } from '../nodes/sampler';
 import { Sequencer } from '../nodes/sequencer';
 import { UrBang } from '../nodes/urBang';
-import { AudioEdge, BangEdge } from '../graph/edges';
-import { AudioOut } from '../nodes/audioOut';
 
-import { globalAudioGraph } from '../graph/audio';
-import { globalBangGraph } from '../graph/bang';
 
 // Some default nodes, with default positions added to them
 const defaultGraph = [

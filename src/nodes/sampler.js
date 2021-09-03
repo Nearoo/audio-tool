@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useImperativeHandle, useState } from 'react'
 import { Player } from 'tone';
 import { Button, Checkbox } from "antd";
 import { useOnGlobalSchedulerStop } from '../scheduler/scheduler';

@@ -1,4 +1,3 @@
-import { Node } from "./node";
 import { Input } from 'antd';
 
 export const Comment = ({useData}) => {
