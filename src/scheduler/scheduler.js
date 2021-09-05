@@ -1,92 +1,12 @@
-import { cyanBright } from 'chalk';
-import { toPlainObject } from 'lodash';
 import PriorityQueue from 'priorityqueuejs';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import * as Tone from 'tone';
 import { Emitter } from 'tone';
 import { assert } from 'tone/build/esm/core/util/Debug';
+import { SchedulerTime, TimeResolution, Time } from './time';
 
 
-
-/*
-All time is always in pulse.
-
-Events are stored as {eventId: callback} in eventRegister.
-The eventQueue only stores object of the form {pulse, eventId},
-and retreives the callback when the event is dispatched.
-
-This is to simplify rapid callback change for an event id
-that is usual for react components.
-*/
-
-
-export class Time {
-    constructor(pulse, scheduler){
-        this.pulse = pulse;
-        this.scheduler = scheduler;
-    }
-
-    static fromSeconds = (seconds, scheduler) => {
-        const {ppb, bpm} = scheduler;
-        const pulsePerSecond = ppb*bpm/60;
-        const secondPerPulse = 1/pulsePerSecond;
-
-        const remainder = seconds % secondPerPulse;
-        const pulse = Math.floor(seconds*pulsePerSecond) + (remainder ? 1 : 0)
-        return new Time(pulse, scheduler);
-    }
-
-    toSeconds = () => {
-        const {ppb, bpm} = this.scheduler;
-        const pulsePerSecond = ppb*bpm/60;
-        return this.pulse/pulsePerSecond;
-    }
-
-    static fromPulse = (pulse, scheduler) => {
-        return new Time(pulse, scheduler);
-    }
-
-    toPulse = () => {
-        return this.pulse;
-    }
-
-    static fromBarNotation = (notation, scheduler) => {
-        let pulse = 0;
-        notation.split(":").forEach((v, i) =>{
-            const pulserPerPart = Math.floor(scheduler.ppb*4/(1<<(i*2)));
-            pulse += Number(v)*pulserPerPart;
-        });
-        return new Time(pulse, scheduler);
-    }
-
-    add = time => {
-        return new Time(this.pulse + time.pulse, this.scheduler);
-    }
-
-    multiply = factor => {
-        return new Time(this.pulse * factor, this.scheduler);
-    }
-
-    schedule = (callback, data) => {
-        return this.scheduler.schedule(callback, this, data);
-    }
-
-    scheduleLater = (callback, time, data) => {
-        return this.add(time).schedule(callback, data);
-    }
-
-    isBefore = time => {
-        return this.toSeconds() < time.toSeconds();
-    }
-
-    isAfter = time => {
-        return this.toSeconds() > time.toSeconds();
-    }
-
-
-}
-
-export class DynamicTransport extends Emitter{
+export class PreciseScheduler extends Emitter{
     constructor({
         ppb = 64, // pulse per beat, i.e. time resolution
         bpm = 120, // beats per minute, i.e. speed
@@ -95,16 +15,12 @@ export class DynamicTransport extends Emitter{
         super();
         // Event: {time, id}
         this.eventQueue = new PriorityQueue((ev1, ev2) => ev2.time.toPulse() - ev1.time.toPulse());
-        this.bpm = bpm
-        this.ppb = ppb
-
-        this.pulsePerSecond = this.ppb*this.bpm/60;
-        this.secondPerPulse = 1/this.pulsePerSecond;
+        this.resolution = new TimeResolution(bpm, ppb);
         this.dispatchTimeoutID = null;
 
-        this.p = pulse => Time.fromPulse(pulse, this)
-        this.s = seconds => Time.fromSeconds(seconds, this)
-        this.b = barNot => Time.fromBarNotation(barNot, this)
+        this.p = pulse => SchedulerTime.fromPulse(pulse, this)
+        this.s = seconds => SchedulerTime.fromSeconds(seconds, this)
+        this.b = barNot => SchedulerTime.fromBarNotation(barNot, this)
 
         // {id: callback}
         this.callbackRegister = {}
@@ -121,6 +37,8 @@ export class DynamicTransport extends Emitter{
     isRunning = () => {
         return !this.doStop;
     }
+
+    getResolution = () => this.resolution;
 
     getNewEventId = () => {
         this.lastScheduledEventId += 1;
@@ -207,11 +125,9 @@ export class DynamicTransport extends Emitter{
 
 }
 
-export const globalScheduler = new DynamicTransport();
+export const globalScheduler = new PreciseScheduler();
 
-export const p = pulse => Time.fromPulse(pulse, globalScheduler),
-             s = seconds => Time.fromSeconds(seconds, globalScheduler),
-             b = barNot => Time.fromBarNotation(barNot, globalScheduler)
+export const {b, s, p} = globalScheduler;
 
 export const useOnGlobalSchedulerStart = callback => {
     useEffect(() => globalScheduler.on("start", callback), []);

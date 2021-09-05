@@ -1,4 +1,5 @@
 import { globalScheduler, s } from "./scheduler";
+
 export class RepeatedCallback{
     constructor(callback, interval){
         this.callback = callback;
