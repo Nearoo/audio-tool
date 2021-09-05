@@ -100,7 +100,7 @@ export const insideNodeContainer = ({Node}) => {
                     });
                     const setData = data => {
                         if(data instanceof Function){
-                            this.data[callSiteId_tmpfix] = data(this.data);
+                            this.data[callSiteId_tmpfix] = data(this.data[callSiteId_tmpfix]);
                         } else {
                             this.data[callSiteId_tmpfix] = data;
                         }
