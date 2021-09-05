@@ -21,6 +21,11 @@ export const insideNodeContainer = ({Node}) => {
                 title: "",
                 handles: [],
             }
+            
+            // Used to assign unique ids to every useData callsite
+            this.useDataCallsiteIdCounter = 0;
+            // this.data[callsiteId] = data for that useData
+            this.data = [];
         }
 
         createUniqueId = () => {
@@ -78,27 +83,27 @@ export const insideNodeContainer = ({Node}) => {
 
         componentDidMount = () => {
             globalAllNodes.add(this);
-            this.data = []
             this.nodeComponent = <Node 
                 useTitle={title => useEffect(() => this.setState({title}), [title])}
                 useData={(data, doClear) => {
+                    // FIXME: This doesn't work as it should. See https://bit.ly/3yL54ge
+                    const [callSiteId] = useState(() => {
+                        return this.useDataCallsiteIdCounter++;
+                    });
+
+                    // FIXME: temporary fix. allows at most one useData() per component.
+                    const callSiteId_tmpfix = 0;
                     const [state, setState] = useState(() => {
-                        // TODO: Allow multiple useData callsites
-                        if(this.props.data != undefined && !doClear){
-                            this.data = this.props.data;
-                        } else {
-                            this.data = data;
-                        }
-
-                        return this.data;
-                    })
-
+                        const alreadyStored = callSiteId_tmpfix < this.props.data?.length;
+                        this.data[callSiteId_tmpfix] = alreadyStored ? this.props.data[callSiteId_tmpfix] : data;
+                        return this.data[callSiteId_tmpfix];
+                    });
                     const setData = data => {
                         if(data instanceof Function){
-                            this.data = data(this.data);
-                        } else
-                            this.data = this.data;
-
+                            this.data[callSiteId_tmpfix] = data(this.data);
+                        } else {
+                            this.data[callSiteId_tmpfix] = data;
+                        }
                         setState(data);
                     }
 
@@ -107,19 +112,19 @@ export const insideNodeContainer = ({Node}) => {
 
                 useAudioInputHandle={
                     (audioNode, handleName, position) => {
-                        useEffect(() => this.addAudioInputHandle(audioNode, handleName, position), [])
+                        useEffect(() => this.addAudioInputHandle(audioNode, handleName, position), []);
                     }
                 }
 
                 useAudioOutputHandle={
                     (audioNode, handleName, position) => {
-                        useEffect(() => this.addAudioOutputHandle(audioNode, handleName, position), [])
+                        useEffect(() => this.addAudioOutputHandle(audioNode, handleName, position), []);
                     }
                 }
 
                 useBangInputHandle={
                     (callback, handleName, position) => {
-                        useEffect(() => this.addBangInputHandle(callback, handleName, position), [])
+                        useEffect(() => this.addBangInputHandle(callback, handleName, position), []);
                     }
                 }
 
