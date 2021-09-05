@@ -67,12 +67,12 @@ export class Time {
         return new Time(this.pulse * factor, this.scheduler);
     }
 
-    schedule = callback => {
-        return this.scheduler.schedule(callback, this);
+    schedule = (callback, data) => {
+        return this.scheduler.schedule(callback, this, data);
     }
 
-    scheduleLater = (callback, time) => {
-        return this.add(time).schedule(callback);
+    scheduleLater = (callback, time, data) => {
+        return this.add(time).schedule(callback, data);
     }
 
     isBefore = time => {
@@ -93,7 +93,7 @@ export class DynamicTransport extends Emitter{
         lookAhead = 12, // ms to schedule in advance
     }={} ){
         super();
-        // Event: {time, evenId}
+        // Event: {time, id}
         this.eventQueue = new PriorityQueue((ev1, ev2) => ev2.time.toPulse() - ev1.time.toPulse());
         this.bpm = bpm
         this.ppb = ppb
@@ -106,16 +106,16 @@ export class DynamicTransport extends Emitter{
         this.s = seconds => Time.fromSeconds(seconds, this)
         this.b = barNot => Time.fromBarNotation(barNot, this)
 
-
+        // {id: callback}
         this.callbackRegister = {}
+        // {id: data}
+        this.dataRegister = {}
+        // counter to get unique event ids
         this.lastScheduledEventId = 0
 
         this.doStop = false;
-        this.lastDispatchPulse = 0;
-        this.transportStartTime = 0;
 
-        this.lookAhead = lookAhead;
-        this.lookAheadPulse = this.s(this.lookAhead*0.001).toPulse();
+        this.lookAhead = this.s(lookAhead*0.001);
     }
 
     isRunning = () => {
@@ -130,7 +130,7 @@ export class DynamicTransport extends Emitter{
     _rescheduleDispatch = () => {
         clearTimeout(this.dispatchTimeoutID);
         if(!this.doStop)
-            this.dispatchTimeoutID = setTimeout(this.dispatch, this.lookAhead-1);
+            this.dispatchTimeoutID = setTimeout(this.dispatch, this.lookAhead.toSeconds()/2);
         else
             this.dispatchTimeoutID = null;
     }
@@ -142,7 +142,6 @@ export class DynamicTransport extends Emitter{
     stop = () => {
         this.doStop = true;
         this.clear();
-        this.lastDispatchPulse = 0;
         this.emit("stop");
     }
 
@@ -153,29 +152,34 @@ export class DynamicTransport extends Emitter{
     }
 
     dispatch = () =>{
-        const now = this.s(Tone.getContext().now())
+        const now = this.now();
         while(
             !this.doStop &&
             !this.eventQueue.isEmpty() && 
-            this.eventQueue.peek().time.toPulse() < now.toPulse() + this.lookAheadPulse
+            this.eventQueue.peek().time.isBefore(now.add(this.lookAhead))
             ){
-                const {time, eventId} = this.eventQueue.deq();
-                const schedTime = time.toSeconds() < now.toSeconds() ? now : time;
-                const callback = this.callbackRegister[eventId];
-                console.debug(`[${now.toSeconds()}, ${now.toPulse()}] Dispatching event with id ${eventId} scheduled for pulse [${schedTime.toPulse()}]`)
-                callback(schedTime);
-                delete this.callbackRegister[eventId];
+                const {time, id} = this.eventQueue.deq();
+                const schedTime = time.isBefore(now) ? now : time;
+                const callback = this.callbackRegister[id];
+                const data = this.dataRegister[id];
+
+                console.debug(`[${now.toSeconds()}, ${now.toPulse()}] Dispatching event with id ${id} scheduled for pulse [${schedTime.toPulse()}]`)
+                callback(schedTime, data);
+
+                delete this.callbackRegister[id];
+                delete this.dataRegister[id];
         }
         this._rescheduleDispatch();
     }
 
-    schedule = (callback, t) =>{
+    schedule = (callback, t, data) =>{
         assert(t instanceof Time, "Scheduling time must be Time object.");
-        const eventId = this.getNewEventId();
-        this.eventQueue.enq({time: t, eventId});
-        this.callbackRegister[eventId] = callback;
-        console.debug(`Scheduled event with id ${eventId} at pulse  ${t.toPulse()}`)
-        return eventId;
+        const id = this.getNewEventId();
+        this.eventQueue.enq({time: t, id});
+        this.callbackRegister[id] = callback;
+        this.dataRegister[id] = data;
+        console.debug(`Scheduled event with id ${id} at pulse  ${t.toPulse()}`)
+        return id;
     }
 
     unschedule = eventId => {
@@ -183,11 +187,14 @@ export class DynamicTransport extends Emitter{
         this.callbackRegister[eventId] = () => {};
     }
 
-    replaceScheduledCallback = (callback, id) => {
-        if(id in this.callbackRegister)
-            this.callbackRegister[id] = callback;
-        else
-            console.warn("Attempted replacing callback for inexistend event with id", id);
+    replaceScheduledCallback = (id, callback) => {
+        assert(id in this.callbackRegister, "Tried replacing data of inexistant event");
+        this.callbackRegister[id] = callback;
+    }
+
+    replaceEventData = (id, data) => {
+        assert(id in this.dataRegister, "Tried replacing data of inexistant event");
+        this.dataRegister[id] = data;
     }
 
     now = () => {
