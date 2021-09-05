@@ -6,6 +6,8 @@ export class RepeatedCallback{
         this.interval = interval;
 
         this.runUntil = s(0);
+
+        globalScheduler.on("stop", () => this.runUntil = s(0));
     }
 
     isRunning = () => {

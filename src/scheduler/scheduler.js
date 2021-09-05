@@ -1,4 +1,5 @@
-import PriorityQueue from 'priorityqueuejs';
+
+import FastPriorityQueue from 'fastpriorityqueue';
 import { useEffect } from 'react';
 import * as Tone from 'tone';
 import { Emitter } from 'tone';
@@ -14,7 +15,7 @@ export class PreciseScheduler extends Emitter{
     }={} ){
         super();
         // Event: {time, id}
-        this.eventQueue = new PriorityQueue((ev1, ev2) => ev2.time.toPulse() - ev1.time.toPulse());
+        this.eventQueue = new FastPriorityQueue((ev1, ev2) => ev1.time.isBefore(ev2.time));
         this.resolution = new TimeResolution(bpm, ppb);
         this.dispatchTimeoutID = null;
 
@@ -54,7 +55,7 @@ export class PreciseScheduler extends Emitter{
     }
 
     clear = () =>{
-        while(!this.eventQueue.isEmpty()) this.eventQueue.deq();
+        while(!this.eventQueue.isEmpty()) this.eventQueue.poll();
     }
 
     stop = () => {
@@ -76,16 +77,14 @@ export class PreciseScheduler extends Emitter{
             !this.eventQueue.isEmpty() && 
             this.eventQueue.peek().time.isBefore(now.add(this.lookAhead))
             ){
-                const {time, id} = this.eventQueue.deq();
+                const {time, id} = this.eventQueue.poll();
                 const schedTime = time.isBefore(now) ? now : time;
                 const callback = this.callbackRegister[id];
                 const data = this.dataRegister[id];
 
                 console.debug(`[${now.toSeconds()}, ${now.toPulse()}] Dispatching event with id ${id} scheduled for pulse [${schedTime.toPulse()}]`)
                 callback(schedTime, data);
-
-                delete this.callbackRegister[id];
-                delete this.dataRegister[id];
+                this._cleanUp(id);
         }
         this._rescheduleDispatch();
     }
@@ -93,7 +92,7 @@ export class PreciseScheduler extends Emitter{
     schedule = (callback, t, data) =>{
         assert(t instanceof Time, "Scheduling time must be Time object.");
         const id = this.getNewEventId();
-        this.eventQueue.enq({time: t, id});
+        this.eventQueue.add({time: t, id});
         this.callbackRegister[id] = callback;
         this.dataRegister[id] = data;
         console.debug(`Scheduled event with id ${id} at pulse  ${t.toPulse()}`)
@@ -101,8 +100,16 @@ export class PreciseScheduler extends Emitter{
     }
 
     unschedule = eventId => {
-        // TODO: Remove event from eventQueue. Extend eventQueue with del.
-        this.callbackRegister[eventId] = () => {};
+        if(!(eventId) in this.callbackRegister)
+            console.warn("Removed inexistant event with id ", eventId);
+        this.eventQueue.removeOne(ev => ev.id === eventId);
+        this._cleanUp(eventId);
+    }
+
+    /* Removes all data associated with the eventId. Doesn't touch eventQueue. */
+    _cleanUp = eventId => {
+        delete this.callbackRegister[eventId];
+        delete this.dataRegister[eventId];
     }
 
     replaceScheduledCallback = (id, callback) => {
