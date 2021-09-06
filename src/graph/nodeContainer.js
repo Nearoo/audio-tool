@@ -24,8 +24,8 @@ export const insideNodeContainer = ({Node}) => {
             
             // Used to assign unique ids to every useData callsite
             this.useDataCallsiteIdCounter = 0;
-            // this.data[callsiteId] = data for that useData
-            this.data = [];
+            // this.data[callsiteId] = data for that useData at callsite callsiteId
+            this.data = {};
         }
 
         createUniqueId = () => {
@@ -85,24 +85,28 @@ export const insideNodeContainer = ({Node}) => {
             globalAllNodes.add(this);
             this.nodeComponent = <Node 
                 useTitle={title => useEffect(() => this.setState({title}), [title])}
-                useData={(data, doClear) => {
-                    // FIXME: This doesn't work as it should. See https://bit.ly/3yL54ge
+                useData={(initialData, doClear) => {
+                    // Returns an unique id for every callsite (not starting at 0, but unique anyway).
                     const [callSiteId] = useState(() => {
                         return this.useDataCallsiteIdCounter++;
                     });
 
-                    // FIXME: temporary fix. allows at most one useData() per component.
-                    const callSiteId_tmpfix = 0;
+                    // state = the saved data, if it exists, or the initial data
                     const [state, setState] = useState(() => {
-                        const alreadyStored = callSiteId_tmpfix < this.props.data?.length;
-                        this.data[callSiteId_tmpfix] = alreadyStored ? this.props.data[callSiteId_tmpfix] : data;
-                        return this.data[callSiteId_tmpfix];
+                        const alreadyStored = callSiteId in (this.props.data ?? {}) && !doClear;
+                        return alreadyStored ? this.props.data[callSiteId] : initialData;
                     });
+
+                    // Set this.data the first time
+                    useEffect(() => {this.data[callSiteId] = state}, []);
+
+                    // setData performs both this.data = data and setState(data)
                     const setData = data => {
+                        // Set this.data
                         if(data instanceof Function){
-                            this.data[callSiteId_tmpfix] = data(this.data[callSiteId_tmpfix]);
+                            this.data[callSiteId] = data(this.data[callSiteId]);
                         } else {
-                            this.data[callSiteId_tmpfix] = data;
+                            this.data[callSiteId] = data;
                         }
                         setState(data);
                     }
