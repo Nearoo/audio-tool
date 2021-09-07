@@ -37,7 +37,6 @@ export class GraphView extends Component {
         }
 
         this.reactFlowInstance = null;
-        this.reactFlowWrapper = createRef();
         this.audioGraph = globalAudioGraph;
         this.bangGraph = globalBangGraph;
 
