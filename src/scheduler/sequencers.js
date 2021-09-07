@@ -196,8 +196,10 @@ export class StepSequencer{
         this.debug("Set new values");
         this.values = values;
         this.transport.removeAllEvents();
+        
+        const callbackUnpackingIndex = (time, {v, i}) => this.callback(time, v, i);
         this.values.forEach((v, i) => 
-            this.transport.addEvent(this.interval.multiply(i), this.callback, v)
+            this.transport.addEvent(this.interval.multiply(i), callbackUnpackingIndex, {v, i})
         );
         this.setInterval(this.interval);
     }

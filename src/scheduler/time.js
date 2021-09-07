@@ -130,6 +130,10 @@ export class SchedulerTime extends Time {
         return this.add(time).schedule(callback, data);
     }
 
+    scheduleDraw = callback => {
+        this.scheduler.scheduleDraw(callback, this);
+    }
+
     // To-Do: Implement s.t. we don't need to rewrite add & multiply
     add = time => {
         return new SchedulerTime(this.pulse + time.pulse, this.scheduler);
