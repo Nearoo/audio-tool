@@ -22,7 +22,6 @@ export const Sampler = ({useTitle, useAudioOutputHandle, useBangInputHandle, use
     }, [fpath]);
 
     useOnGlobalSchedulerStop(() => player.stop());
-
     return <>
     <Input onPressEnter={e => setFPath(e.target.value)} defaultValue={fpath} style={{innerWidth:"300px"}}/>
     <Checkbox onChange={(e) => setLoop(e.target.checked)} checked={loop}>Loop</Checkbox>

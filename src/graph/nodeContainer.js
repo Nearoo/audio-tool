@@ -1,17 +1,18 @@
-import { Card } from 'antd';
+import { Badge, Card } from 'antd';
 import { Component, createRef, useEffect, useState } from 'react';
 import _ from 'lodash';
 import { Handle } from './handles';
 import { globalAudioGraph } from './audio';
 import { globalBangGraph } from './bang';
 import { thisExpression } from '@babel/types';
+import { SaveOutlined } from '@ant-design/icons';
 /** Contains the instances of all nodes, globally */
 const globalAllNodes = new Set();
 /** Returns list of all nodes as react-flow elements */
 export const getAllNodesAsReactFlowElements = () => Array.from(globalAllNodes).map(node => node.getAsReactFlowElement());
 
-/** Returns the node wrapped in the standard node container, with borders, handles etc. */
-export const insideNodeContainer = ({Node}) => {
+/** Returns the node wrapped in the standard node container, with borders, handles, hooks, etc. */
+export const insideNodeContainer = (Node) => {
     return class extends Component {
         constructor(props){
             super(props);
@@ -25,7 +26,7 @@ export const insideNodeContainer = ({Node}) => {
             // Used to assign unique ids to every useData callsite
             this.useDataCallsiteIdCounter = 0;
             // this.data[callsiteId] = data for that useData at callsite callsiteId
-            this.data = {};
+            this.data = this.props.data ?? {};
         }
 
         createUniqueId = () => {
@@ -169,9 +170,7 @@ export const insideNodeContainer = ({Node}) => {
                             return () => globalBangGraph.deregisterOutputNode(nodeIdentifier)}, []);
                         return callback;
                     }
-                }
-                
-                addBangOutputHandle={this.addBangOutHandle}/>;
+                } />
         }
 
         componentWillUnmount = () => {
@@ -210,9 +209,10 @@ export const insideNodeContainer = ({Node}) => {
                 padding: "3px",
                 cursor: "pointer"
             }
+            const savePresetBadge = <span style={{paddingLeft: 5}}><Badge count={<SaveOutlined />} onClick={() => console.log(this.data)}/></span>
             return <div style={outerStyle} key={this.id}>
                 {this.state.handles.map(props => <Handle {...props} key={props.id} parentId={this.id} />)}
-                <div style={titleStyle}>{this.state.title}</div>
+                <div style={titleStyle}>{this.state.title}{savePresetBadge}</div>
                 <div style={contentStyle} className="nodrag">{this.nodeComponent}</div>
             </div>
         }

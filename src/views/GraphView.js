@@ -1,18 +1,15 @@
 import { Button, Card, Col, Input, Row } from 'antd';
 import Modal from 'antd/lib/modal/Modal';
 import _ from 'lodash';
-import { Component } from 'react';
+import { Component, createRef } from 'react';
 import ReactFlow, { Background, Controls, MiniMap, ReactFlowProvider } from 'react-flow-renderer';
 import { globalAudioGraph } from '../graph/audio';
 import { globalBangGraph } from '../graph/bang';
 import { AudioEdge, BangEdge } from '../graph/edges';
 import { getAllNodesAsReactFlowElements, insideNodeContainer } from '../graph/nodeContainer';
-import { AudioOut } from '../nodes/audioOut';
-import { Comment } from '../nodes/comment';
-import { Sampler } from '../nodes/sampler';
-import { Sequencer } from '../nodes/sequencer';
-import { UrBang } from '../nodes/urBang';
 
+import { nodeTypes } from './nodeTypes';
+import { edgeTypes } from './edgeTypes';
 
 // Some default nodes, with default positions added to them
 const defaultGraph = [
@@ -21,21 +18,6 @@ const defaultGraph = [
       type: "urbang"
   },
 ].map(el => ({...el, position: {...(el.position ?? {x: 100, y: 100})}}));
-
-const nodes = {
-    sequencer: Sequencer,
-    comment: Comment,
-    urbang: UrBang,
-    sampler: Sampler,
-    audioout: AudioOut,
-}
-
-const edgeTypes = {
-    audio: AudioEdge,
-    bang: BangEdge
-}
-
-
 
 export class GraphView extends Component {
     // key in localStorage in which the graph is stored
@@ -55,14 +37,14 @@ export class GraphView extends Component {
         }
 
         this.reactFlowInstance = null;
+        this.reactFlowWrapper = createRef();
         this.audioGraph = globalAudioGraph;
         this.bangGraph = globalBangGraph;
 
-        this.nodeTypes = _.mapValues(nodes, node => insideNodeContainer({
-            Node: node
-        }));
+        this.nodeTypes = _.mapValues(nodeTypes, node => insideNodeContainer(node));
 
-        this.edgeTypes = edgeTypes
+        this.edgeTypes = edgeTypes;
+
     }
 
     componentDidMount = () => {
@@ -152,13 +134,14 @@ export class GraphView extends Component {
         localStorage.removeItem(this.localStorageKey);
     }
 
-    addNodeOfType = (type, position={x:100, y:100}) => {
+    addNodeOfType = (type, position={x:100, y:100}, data=undefined) => {
         if(type in this.nodeTypes){
             const id = `${type}(${this.getUniqueId()})`;
             const newNode = {
                 id,
                 type,
-                position
+                position,
+                data
             }
 
             this.setState(state => ({elements: [...state.elements, newNode]}));
@@ -212,6 +195,24 @@ export class GraphView extends Component {
         }
     }
 
+    onDragOver = ev => {
+        ev.preventDefault();
+        ev.dataTransfer.dropEffect = "move";
+    }
+
+    onDrop = ev => {
+        ev.preventDefault();
+        // Copied from https://reactflow.dev/examples/drag-and-drop/
+        //const reactFlowBounds = this.reactFlowInstance.getBoundingClientRect();
+        const nodeData = JSON.parse(ev.dataTransfer.getData("app/audio-tool/preset-dnd"));
+        const position = this.reactFlowInstance.project({
+            x: ev.clientX, // - reactFlowBounds.left,
+            y: ev.clientY, //- reactFlowBounds.top,
+            });
+
+        this.addNodeOfType(nodeData.type, position, nodeData.data);
+    }
+
     render = () => {
         return <Card style={{margin: 10}}>
             <div style={{height: 900}}>
@@ -229,6 +230,8 @@ export class GraphView extends Component {
                         onConnect={this.onConnectHandles}
                         deleteKeyCode={"Delete"}
                         onElementsRemove={this.onElementsRemove}
+                        onDragOver={this.onDragOver}
+                        onDrop={this.onDrop}
                         //onPaneContextMenu={this.onPaneContextMenu}
                         onContextMenu={this.onPaneClick}>
                         <Background variant="dots" gap={24} size={0.5} />
