@@ -62,7 +62,7 @@ export class Transport {
     }
 
     start = time => {
-        this.glStartTime = time.justBefore();
+        this.glStartTime = time;
         // Reschedule all events
         Object.keys(this.tpEvents).forEach(tpid => {
             if(this.isScheduled(tpid))
