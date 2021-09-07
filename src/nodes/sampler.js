@@ -7,12 +7,10 @@ export const Sampler = ({useTitle, useAudioOutputHandle, useBangInputHandle, use
     useTitle("Sampler");
     const [player] = useState(() => new Player("https://tonejs.github.io/audio/berklee/gong_1.mp3"));
     useAudioOutputHandle(player.output, "audio-out");
-    useBangInputHandle(time => player.start(time.toSeconds()), "player-start");
+    useBangInputHandle(time =>player.start(time.toSeconds()), "player-start");
 
     const [{doLoop}, setData] = useData({doLoop: false});
     useEffect(() => player.set({loop: doLoop}), [doLoop]);
-    
-
     useOnGlobalSchedulerStop(() => player.stop());
 
     return <>

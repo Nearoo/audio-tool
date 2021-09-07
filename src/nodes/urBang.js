@@ -4,7 +4,7 @@ import { globalScheduler, s, useOnGlobalSchedulerStart, useOnGlobalSchedulerStop
 
 
 export const UrBang = ({useTitle, useBangOutputHandle}) => {
-    useTitle("UrBang");
+    useTitle();
 
     // Use isRunning state following global scheduler state
     const [isRunning, setRunning] = useState(false);
@@ -13,7 +13,7 @@ export const UrBang = ({useTitle, useBangOutputHandle}) => {
     
     // Setup urBang handle
     const triggerUrBang = useBangOutputHandle("urbang-out");
-    useOnGlobalSchedulerStart(() => s(0).schedule(triggerUrBang));
+    useOnGlobalSchedulerStart(() => globalScheduler.now().add(s(0.1)).schedule(triggerUrBang));
 
     // Return start / stop button depending on global scheduler state
     return isRunning ? 

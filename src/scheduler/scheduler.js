@@ -35,6 +35,10 @@ export class PreciseScheduler extends Emitter{
         this.lookAhead = this.s(lookAhead*0.001);
     }
 
+    debug = msg => {
+        console.debug(`[Scheduler]{${this.now().toPulse()}}: `, msg);
+    }
+
     isRunning = () => {
         return !this.doStop;
     }
@@ -71,19 +75,17 @@ export class PreciseScheduler extends Emitter{
     }
 
     dispatch = () =>{
-        const now = this.now();
         while(
             !this.doStop &&
             !this.eventQueue.isEmpty() && 
-            this.eventQueue.peek().time.isBefore(now.add(this.lookAhead))
+            this.eventQueue.peek().time.isBefore(this.now().add(this.lookAhead))
             ){
                 const {time, id} = this.eventQueue.poll();
-                const schedTime = time.isBefore(now) ? now : time;
                 const callback = this.callbackRegister[id];
                 const data = this.dataRegister[id];
 
-                console.debug(`[${now.toSeconds()}, ${now.toPulse()}] Dispatching event with id ${id} scheduled for pulse [${schedTime.toPulse()}]`)
-                callback(schedTime, data);
+                this.debug(`Dispatching event with id ${id} scheduled for pulse [${time}]`)
+                callback(time, data);
                 this._cleanUp(id);
         }
         this._rescheduleDispatch();
@@ -95,11 +97,12 @@ export class PreciseScheduler extends Emitter{
         this.eventQueue.add({time: t, id});
         this.callbackRegister[id] = callback;
         this.dataRegister[id] = data;
-        console.debug(`Scheduled event with id ${id} at pulse  ${t.toPulse()}`)
+        this.debug(`Scheduled event with id ${id} for pulse  [${t.toPulse()}]`)
         return id;
     }
 
     unschedule = eventId => {
+        this.debug(`Unscheduled event ${eventId}`);
         if(!(eventId) in this.callbackRegister)
             console.warn("Removed inexistant event with id ", eventId);
         this.eventQueue.removeOne(ev => ev.id === eventId);
@@ -135,6 +138,7 @@ export class PreciseScheduler extends Emitter{
 export const globalScheduler = new PreciseScheduler();
 
 export const {b, s, p} = globalScheduler;
+export const never = s(Number.POSITIVE_INFINITY);
 
 export const useOnGlobalSchedulerStart = callback => {
     useEffect(() => globalScheduler.on("start", callback), []);

@@ -59,6 +59,10 @@ export class Time {
         return new Time(this.pulse + time.pulse, this.res);
     }
 
+    subtract = time => {
+        return new Time(this.pulse - time.pulse, this.res);
+    }
+
     multiply = factor => {
         return new Time(this.pulse * factor, this.res);
     }
@@ -69,6 +73,19 @@ export class Time {
 
     isAfter = time => {
         return this.toSeconds() > time.toSeconds();
+    }
+
+        
+    isOnOrBefore = time => {
+        return !this.isAfter(time);
+    }
+
+    isOnOrAfter = time => {
+        return !this.isBefore(time);
+    }
+
+    isNever = () => {
+        return this.pulse === Number.POSITIVE_INFINITY;
     }
 }
 
@@ -119,7 +136,30 @@ export class SchedulerTime extends Time {
     }
 
     multiply = factor => {
-        return new SchedulerTime(this.pulse * factor, this.res);
+        return new SchedulerTime(this.pulse * factor, this.scheduler);
+    }
+
+    subtract = time => {
+        return new SchedulerTime(this.pulse - time.pulse, this.scheduler);
+    }
+
+    mod = time => {
+        return new SchedulerTime(this.pulse % time.pulse, this.scheduler);
+    }
+
+    toString = () => {
+        if(this.pulse === Number.POSITIVE_INFINITY)
+            return "time(Infinity)";
+        else
+            return `time(pulse=${this.pulse})`;
+    }
+
+    justBefore = () => {
+        return new SchedulerTime(this.pulse-1, this.scheduler);
+    }
+
+    justAfter = () => {
+        return new SchedulerTime(this.pulse+1, this.scheduler);
     }
 
 }
