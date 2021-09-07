@@ -45,6 +45,13 @@ export class GraphView extends Component {
         super(props)
         this.state = {
             elements: props.elements,
+            addNodePopup: {
+                    position: {
+                        x: 0,
+                        y: 0
+                    },
+                    visible: false
+                }
         }
 
         this.reactFlowInstance = null;
@@ -72,7 +79,7 @@ export class GraphView extends Component {
     }
 
     removeElement = element => {
-        this.setState(state => ({elements: _.without(state.elements, [element])}));
+        this.setState(state => ({elements: _.reject(state.elements, {id: element.id})}));
     }
 
     addEdge = (params) => {
@@ -168,7 +175,40 @@ export class GraphView extends Component {
             this.addEdge({...params, type: "bang"});
         } else {
             console.log("Can't connect handles ", sourceHandle, "and", targetHandle, "of different types");
-            console.log("AudioGraph:", this.audioGraph)
+        }
+    }
+
+    onElementsRemove = elements => {
+        elements.forEach(element => {
+            if("source" in element)
+                this.onEdgeRemove(element);
+            else
+                this.onNodeRemove(element);
+        })
+    }
+
+    onEdgeRemove = edge => {
+        this.removeElement(edge);
+    }
+
+    onNodeRemove = node => {
+        this.removeElement(node);
+    }
+
+    onPaneClick = (event) => {
+        if(true){
+            event.preventDefault();
+            event.stopPropagation();
+            console.log(event);
+            this.setState({
+                addNodePopup: {
+                    position: {
+                        x: event.pageX-20,
+                        y: event.pageY-25
+                    },
+                    visible: true
+                }
+            });
         }
     }
 
@@ -186,13 +226,34 @@ export class GraphView extends Component {
                         nodeTypes={this.nodeTypes}
                         edgeTypes={this.edgeTypes}
                         onLoad={this.onReactFlowLoad}
-                        onConnect={this.onConnectHandles}>
+                        onConnect={this.onConnectHandles}
+                        deleteKeyCode={"Delete"}
+                        onElementsRemove={this.onElementsRemove}
+                        //onPaneContextMenu={this.onPaneContextMenu}
+                        onContextMenu={this.onPaneClick}>
                         <Background variant="dots" gap={24} size={0.5} />
                         <MiniMap />
                         <Controls />
                     </ReactFlow>
                 </ReactFlowProvider>
-                <Modal><p>Some Input</p></Modal>
+                {
+                this.state.addNodePopup.visible
+                ?    <div style={{
+                        left: this.state.addNodePopup.position.x + "px",
+                        top: this.state.addNodePopup.position.y + "px",
+                        position: "absolute"
+                    }}>
+                        <Input placeholder="Add new element..."
+                                onPressEnter={e => {
+                                    this.addNodeOfType(e.target.value, this.state.addNodePopup.position);
+                                    e.target.blur();
+                                }}
+                                autoFocus
+                                onBlur={() => this.setState({addNodePopup: {visible: false}})} />
+                    </div> 
+                : <></>
+                }
+                
             </div>
         </Card>
     }

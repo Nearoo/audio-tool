@@ -16,7 +16,7 @@ export class AudioGraph {
         this.nodeMap[nodeIdentifier] = node;
     }
 
-    deRegisterNode = (id) => {
+    deregisterNode = (id) => {
         delete this.nodeMap[id];
     }
 
@@ -25,7 +25,7 @@ export class AudioGraph {
     }
 
     disconnectNodes = (id1, id2) => {
-        this.nodeMap[id1].disconnect(this.nodeMap[id2]);
+        this.nodeMap[id1]?.disconnect(this.nodeMap[id2]);
     }
 
     isAudioNode = id => {

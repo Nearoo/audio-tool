@@ -18,7 +18,6 @@ export const Sampler = ({useTitle, useAudioOutputHandle, useBangInputHandle, use
     useEffect(() => {
         setPlayerReady(false);
         const path = `sounds/drums/${fpath}.wav`; 
-        console.log("Loading", path);
         player.load(path).then(() => setPlayerReady(true));
     }, [fpath]);
 

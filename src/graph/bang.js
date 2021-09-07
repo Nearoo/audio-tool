@@ -15,21 +15,28 @@ export class BangGraph {
     }
 
     registerOutputNode = (nodeIdentifier) => {
-        this.triggererMap[nodeIdentifier] = new Set();
+        if(!(nodeIdentifier in this.triggererMap)){
+            this.triggererMap[nodeIdentifier] = new Set();
+        }
         const callback = (time, data) => this.triggererMap[nodeIdentifier].forEach(
             triggeree => this.triggereeMap[triggeree](time, data)
         );
         return callback;
     }
 
+    deregisterOutputNode = nodeIdentifier => {
+        this.triggererMap[nodeIdentifier].forEach(inputNode =>
+            this.disconnectNodes(nodeIdentifier, inputNode));
+        delete this.triggererMap[nodeIdentifier];
+    }
 
     registerInputNode = (nodeIdentifier, callback) => {
         const id = nodeIdentifier;
         this.triggereeMap[id] = callback;
     }
 
-    deRegisterNode = (id) => {
-        delete this.nodeMap[id];
+    deregisterInputNode = (id) => {
+        delete this.triggereeMap[id];
     }
 
     connectNodes = (id1, id2) => {
@@ -37,7 +44,7 @@ export class BangGraph {
     }
 
     disconnectNodes = (id1, id2) => {
-        this.triggererMap[id1].remove(id2);
+        this.triggererMap[id1]?.delete(id2);
     }
 
     isBangNode = id => {

@@ -38,47 +38,73 @@ export const insideNodeContainer = ({Node}) => {
             this.setState(state => ({handles: [...state.handles, handle]}));
         }
 
+        pullHandle = id => {
+            this.setState(state => ({handles: _.reject(state.handles, {id})}));
+        }
+
         getData = () => {
             return this.data;
         }
 
-        registerAudioNode = (node, handleName) => {
-            const nodeIdentifier = `audioNode(${this.id}//${handleName})`;
-            globalAudioGraph.registerNode(node, nodeIdentifier);
+        toAudioNodeIdentifier = handleName =>
+            `audioNode(${this.id}//${handleName})`;
+        
+        toBangInputNodeIdentifier = handleName => 
+            `bangInputNode(${this.id}//${handleName})`;
+        
+        toBangOutputNodeIdentifier = handleName => 
+            `bangOutputNode(${this.id}//${handleName})`
+
+        addAudioInputHandle = (audioNode, handleName, position="top") => {
+            const nodeIdentifier = this.toAudioNodeIdentifier(handleName);
+            globalAudioGraph.registerNode(audioNode, nodeIdentifier);
+            this.pushHandle(nodeIdentifier, "audio", "target", position);
             return nodeIdentifier;
         }
 
-        addAudioInputHandle = (audioNode, handleName, position="top") => {
-            const nodeIdentifier = this.registerAudioNode(audioNode, handleName);
-            this.pushHandle(nodeIdentifier, "audio", "target", position);
+        removeAudioInputHandle = handleName => {
+            const nodeIdentifier = this.toAudioNodeIdentifier(handleName);
+            globalAudioGraph.deregisterNode(nodeIdentifier);
+            this.pullHandle(nodeIdentifier);
         }
 
         addAudioOutputHandle = (audioNode, handleName, position="bottom" ) => {
-            const nodeIdentifier = this.registerAudioNode(audioNode, handleName);
+            const nodeIdentifier = this.toAudioNodeIdentifier(handleName);
+            globalAudioGraph.registerNode(audioNode, nodeIdentifier);
             this.pushHandle(nodeIdentifier, "audio", "source", position);
-        }
-
-        registerBangInputNode = (callback, handleName) => {
-            const nodeIdentifier = `bangInputNode(${this.id}//${handleName})`;
-            globalBangGraph.registerInputNode(nodeIdentifier, callback);
             return nodeIdentifier;
         }
 
-        addBangInputHandle = (callback, handleName, position="left") => {
-            const nodeIdentifier = this.registerBangInputNode(callback, handleName);
-            this.pushHandle(nodeIdentifier, "bang", "target", position);
+        removeAudioOutputHandle = handleName => {
+            const nodeIdentifier = this.toAudioNodeIdentifier(handleName);
+            globalAudioGraph.deregisterNode(nodeIdentifier);
+            this.pullHandle(nodeIdentifier);
         }
 
-        registerBangOutputNode = (handleName) => {
-            const nodeIdentifier = `bangOutputNode(${this.id}//${handleName})`;
-            const callback = globalBangGraph.registerOutputNode(nodeIdentifier);
-            return [nodeIdentifier, callback];
+        addBangInputHandle = (callback, handleName, position="left") => {
+            const nodeIdentifier = this.toBangInputNodeIdentifier(handleName);
+            globalBangGraph.registerInputNode(nodeIdentifier, callback);
+            this.pushHandle(nodeIdentifier, "bang", "target", position);
+            return nodeIdentifier;
+        }
+
+        removeBangInputHandle = handleName => {
+            const nodeIdentifier = this.toBangInputNodeIdentifier(handleName);
+            globalBangGraph.deregisterInputNode(nodeIdentifier);
+            this.pullHandle(nodeIdentifier);
         }
 
         addBangOutputHandle = (handleName, position="right") => {
-            const [nodeIdentifier, callback] = this.registerBangOutputNode(handleName);
+            const nodeIdentifier = this.toBangOutputNodeIdentifier(handleName);
+            const callback = globalBangGraph.registerOutputNode(nodeIdentifier);
             this.pushHandle(nodeIdentifier, "bang", "source", position);
-            return callback;
+            return [nodeIdentifier, callback];
+        }
+
+        removeBangOutputHandle = handleName => {
+            const nodeIdentifier = this.toBangInputNodeIdentifier(handleName);
+            globalBangGraph.deregisterOutputNode(nodeIdentifier);
+            this.pullHandle(nodeIdentifier);
         }
 
         componentDidMount = () => {
@@ -116,27 +142,31 @@ export const insideNodeContainer = ({Node}) => {
 
                 useAudioInputHandle={
                     (audioNode, handleName, position) => {
-                        useEffect(() => this.addAudioInputHandle(audioNode, handleName, position), []);
+                        useEffect(() => {this.addAudioInputHandle(audioNode, handleName, position);
+                            return () => this.removeAudioInputHandle(handleName)}, []);
                     }
                 }
 
                 useAudioOutputHandle={
                     (audioNode, handleName, position) => {
-                        useEffect(() => this.addAudioOutputHandle(audioNode, handleName, position), []);
+                        useEffect(() => {this.addAudioOutputHandle(audioNode, handleName, position);
+                            return () => {this.removeAudioOutputHandle(handleName)}}, []);
                     }
                 }
 
                 useBangInputHandle={
                     (callback, handleName, position) => {
-                        useEffect(() => this.addBangInputHandle(callback, handleName, position), []);
+                        useEffect(() => {this.addBangInputHandle(callback, handleName, position);
+                            return () => {this.removeBangInputHandle(handleName)}}, []);
                     }
                 }
 
                 useBangOutputHandle={
                     (handleName, position="right") => {
-                        const [[nodeIdentifier, callback]] = useState(() => this.registerBangOutputNode(handleName));
-                        // setState must be encapsulated in useEffect, that's why it's separated out
-                        useEffect(() => this.pushHandle(nodeIdentifier, "bang", "source", position), []);
+                        const [nodeIdentifier] = useState(() => this.toBangOutputNodeIdentifier(handleName));
+                        const [callback] = useState(() => globalBangGraph.registerOutputNode(nodeIdentifier));
+                        useEffect(() => {this.pushHandle(nodeIdentifier, "bang", "source", position);
+                            return () => globalBangGraph.deregisterOutputNode(nodeIdentifier)}, []);
                         return callback;
                     }
                 }
@@ -157,10 +187,33 @@ export const insideNodeContainer = ({Node}) => {
         }
 
         render(){
-            return <div className="node-card" key={this.id}>
+            const outerStyle = {
+                border: `1px solid ${this.props.selected ? "black" : "lightgrey"}`,
+                minWidth: "30px",
+                minHeight: "30px",
+                fontSize: "smaller",
+                borderRadius: "2px",
+                boxShadow: "0px 0px 1px lightgrey",
+                backgroundColor: "white",
+                margin: "4px"
+            }
+
+            const titleStyle = {
+                backgroundColor: "rgb(235, 235, 235)",
+                fontSize: "x-small",
+                padding: "2px",
+                paddingLeft: "6px",
+                minHeight: "7px"
+            }
+
+            const contentStyle = {
+                padding: "3px",
+                cursor: "pointer"
+            }
+            return <div style={outerStyle} key={this.id}>
                 {this.state.handles.map(props => <Handle {...props} key={props.id} parentId={this.id} />)}
-                <div className="title">{this.state.title}</div>
-                <div className="content nodrag">{this.nodeComponent}</div>
+                <div style={titleStyle}>{this.state.title}</div>
+                <div style={contentStyle} className="nodrag">{this.nodeComponent}</div>
             </div>
         }
     }

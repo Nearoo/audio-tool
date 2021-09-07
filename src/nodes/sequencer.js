@@ -21,7 +21,7 @@ export const Sequencer = ({useData, useBangInputHandle, useBangOutputHandle}) =>
     const length = 16;
 
     const outBangCallback = useBangOutputHandle("sequencer-out");
-    const [stepSeq] = useState(() => new StepSequencer((time, v, i) =>{console.log(time, v); if(v) outBangCallback(time);}, b("0:0:1")));
+    const [stepSeq] = useState(() => new StepSequencer((time, v, i) =>{if(v) outBangCallback(time)}, b("0:0:1")));
     useBangInputHandle((time) => stepSeq.start(time), "sequencer-start");
 
     const [data, setData] = useData({toggles: Array(length).fill(false)});
