@@ -112,11 +112,9 @@ export const insideNodeContainer = (Node) => {
             globalAllNodes.add(this);
             this.nodeComponent = <Node 
                 useTitle={title => useEffect(() => this.setState({title}), [title])}
-                useData={(initialData, doClear) => {
+                useData={(initialData, dataId, doClear) => {
                     // Returns an unique id for every callsite (not starting at 0, but unique anyway).
-                    const [callSiteId] = useState(() => {
-                        return this.useDataCallsiteIdCounter++;
-                    });
+                    const [callSiteId] = useState(() => (dataId === undefined) ? this.useDataCallsiteIdCounter++ : dataId);
 
                     // state = the saved data, if it exists, or the initial data
                     const [state, setState] = useState(() => {
