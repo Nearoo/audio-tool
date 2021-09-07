@@ -1,20 +1,32 @@
 import { useEffect, useImperativeHandle, useState } from 'react'
 import { Player } from 'tone';
-import { Button, Checkbox } from "antd";
+import { Button, Checkbox, Input } from "antd";
 import { useOnGlobalSchedulerStop } from '../scheduler/scheduler';
 
 export const Sampler = ({useTitle, useAudioOutputHandle, useBangInputHandle, useData}) => {
     useTitle("Sampler");
-    const [player] = useState(() => new Player("https://tonejs.github.io/audio/berklee/gong_1.mp3"));
+    const [player] = useState(() => new Player());
     useAudioOutputHandle(player.output, "audio-out");
     useBangInputHandle(time =>player.start(time.toSeconds()), "player-start");
 
-    const [{doLoop}, setData] = useData({doLoop: false});
-    useEffect(() => player.set({loop: doLoop}), [doLoop]);
+    const [loop, setLoop] = useData(false);
+    const [fpath, setFPath] = useData("808/Clap");
+
+    useEffect(() => player.set({loop}), [loop]);
+
+    const [playerReady, setPlayerReady] = useState(false);
+    useEffect(() => {
+        setPlayerReady(false);
+        const path = `sounds/drums/${fpath}.wav`; 
+        console.log("Loading", path);
+        player.load(path).then(() => setPlayerReady(true));
+    }, [fpath]);
+
     useOnGlobalSchedulerStop(() => player.stop());
 
     return <>
-    <Checkbox onChange={(e) => setData({doLoop: e.target.checked})} checked={doLoop}>Loop</Checkbox>
-    <Button onClick={() => player.start()}>Play</Button>
+    <Input onPressEnter={e => setFPath(e.target.value)} defaultValue={fpath} style={{innerWidth:"300px"}}/>
+    <Checkbox onChange={(e) => setLoop(e.target.checked)} checked={loop}>Loop</Checkbox>
+    <Button onClick={() => player.start()} disabled={!playerReady}>Play</Button>
     </>
 }
