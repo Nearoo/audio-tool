@@ -9,8 +9,8 @@ export const Sampler = ({useTitle, useAudioOutputHandle, useBangInputHandle, use
     useAudioOutputHandle(player.output, "audio-out");
     useBangInputHandle(time =>player.start(time.toSeconds()), "player-start");
 
-    const [loop, setLoop] = useData(false);
-    const [fpath, setFPath] = useData("808/Clap");
+    const [loop, setLoop] = useData(false, "loop");
+    const [fpath, setFPath] = useData("808/Clap", "path");
 
     useEffect(() => player.set({loop}), [loop]);
 
