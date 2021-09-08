@@ -168,7 +168,20 @@ export const insideNodeContainer = (Node) => {
                             return () => globalBangGraph.deregisterOutputNode(nodeIdentifier)}, []);
                         return callback;
                     }
-                } />
+                }
+
+                useBangOutputHandles={
+                    (handleNames, position="right") => {
+                        const [nodeIdentifiers] = useState(() => handleNames.map(handleName => this.toBangOutputNodeIdentifier(handleName)));
+                        const [callbacks] = useState(() => nodeIdentifiers.map(identifier => globalBangGraph.registerOutputNode(identifier)));
+                        useEffect(() => {nodeIdentifiers.map(nodeIdentifier => this.pushHandle(nodeIdentifier, "bang", "source", position));
+                            return () => {
+                                nodeIdentifiers.map(nodeIdentifier => globalBangGraph.deregisterOutputNode(nodeIdentifier));
+                                nodeIdentifiers.map(nodeIdentifier => this.pullHandle(nodeIdentifier))}}, handleNames);
+                        return callbacks;
+                    }
+                }
+                />
         }
 
         componentWillUnmount = () => {
@@ -207,9 +220,19 @@ export const insideNodeContainer = (Node) => {
                 padding: "3px",
                 cursor: "pointer"
             }
+
             const savePresetBadge = <span style={{paddingLeft: 5}}><Badge count={<SaveOutlined />} onClick={() => console.log(this.data)}/></span>
+
+            const getPctForHandleNo = no => {
+                const minPct = 20;
+                const maxPct = 100;
+                const offset = maxPct - minPct;
+                const relOffset = offset / (this.state.handles.length-1);
+                const pct = minPct + relOffset*no;
+                return `${pct}%`;
+            }
             return <div style={outerStyle} key={this.id}>
-                {this.state.handles.map(props => <Handle {...props} key={props.id} parentId={this.id} />)}
+                {this.state.handles.map((props, i) => <Handle {...props} key={props.id} parentId={this.id} style={{top: getPctForHandleNo(i)}} />)}
                 <div style={titleStyle}>{this.state.title}{savePresetBadge}</div>
                 <div style={contentStyle} className="nodrag">{this.nodeComponent}</div>
             </div>

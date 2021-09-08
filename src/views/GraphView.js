@@ -14,9 +14,20 @@ import { edgeTypes } from './edgeTypes';
 // Some default nodes, with default positions added to them
 const defaultGraph = [
   {
-      id: "urbang",
-      type: "urbang"
-  },
+    id: "urbang",
+    type: "urbang",
+    position: {
+        x: 100,
+        y: 100
+    },
+  },{
+    id: "audioout",
+    type: "audioout",
+    position: {
+        x: 300,
+        y: 300
+    }
+  }
 ].map(el => ({...el, position: {...(el.position ?? {x: 100, y: 100})}}));
 
 export class GraphView extends Component {
@@ -218,7 +229,6 @@ export class GraphView extends Component {
                 <Input.Group><Row gutter={5}>
                 <Col><Button onClick={() => this.saveGraph()}>Save</Button></Col>
                 <Col><Button onClick={() => this.clearSaved()}>Clear</Button></Col>
-                <Col><Input placeholder="Add new element..." onPressEnter={e => this.addNodeOfType(e.target.value)} /></Col>
                 </Row></Input.Group>
                 <ReactFlowProvider>
                     <ReactFlow

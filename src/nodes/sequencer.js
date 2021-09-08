@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { TickSignal } from "tone/build/esm/core/clock/TickSignal";
 import { b, globalScheduler, useOnGlobalSchedulerStop } from '../scheduler/scheduler';
 import { StepSequencer, Transport } from "../scheduler/sequencers";
+import _ from 'lodash';
 
 const TogglableBox = ({isToggled, toggle, isActive}) =>
     <div style={{
@@ -18,54 +19,38 @@ const TogglableBox = ({isToggled, toggle, isActive}) =>
 
 
 
-export const Sequencer = ({useData, useBangInputHandle, useBangOutputHandle}) => {
-    const length = 16;
-    const [stepCursor, setStepCursor] = useState(-1);
+export const Sequencer = ({useData, useBangInputHandle, useBangOutputHandle, useBangOutputHandles}) => {
 
-    const outBangCallback = useBangOutputHandle("sequencer-out");
+    const [noCols, setNoCols] = useData(16, "no-cols");
+    const [noRows, setNoRows] = useData(4, "no-rows");
+    // bangGrid[col][row]
+    const [bangGrid, setBangGrid] = useData(
+        Array(noCols).fill().map(() => Array(noRows).fill(false)), "bang-grid", true
+    )
+
+    const flipRowCol = (rowI, colI) =>
+        setBangGrid(grid => grid.map((col, colI_) => colI_ !== colI ? col : col.map((row, rowI_) => rowI_ !== rowI ? row : !row))); 
+    const [stepCursor, setStepCursor] = useState(-1);
+    const bangOutCallbacks = useBangOutputHandles(bangGrid[0].map((row, rowi) => `bang-out-${rowi}`));
+
     const [stepSeq] = useState(() => new StepSequencer((time, v, i) =>{
-        if(v)
-            outBangCallback(time)
+        v.map((value, row) => {
+            if(value)
+                bangOutCallbacks[row](time);
+        });
         time.scheduleDraw(() => setStepCursor(i));
     }, b("0:0:1")));
+
     useBangInputHandle((time) => stepSeq.start(time), "sequencer-start");
+    useEffect(() => stepSeq.setValues(bangGrid), [bangGrid]);
 
-    const [data, setData] = useData({toggles: Array(length).fill(false)});
-    const toggleIth = useCallback(i => setData(data => ({toggles: data.toggles.map((v, j) => i == j ? !v : v)})), []);
-    useEffect(() => stepSeq.setValues(data.toggles), [data.toggles]);
-
-    return data.toggles.map((v, i) => <TogglableBox isToggled={v} toggle={() => toggleIth(i)} key={i} isActive={i===stepCursor}/>)
+    useOnGlobalSchedulerStop(() => setStepCursor(-1));
+    const bangGridT = _.zip(...bangGrid);
+    return bangGridT.map((row, rowI) =>
+                        <div key={rowI}>
+                            {row.map((value, colI) =>
+                                <TogglableBox isToggled={value} toggle={() => flipRowCol(rowI, colI)} key={colI} isActive={stepCursor===colI}/>
+                                )}
+                        </div>)
 
 }
-
-/** Just in case i fucked all of it up
- * 
- * 
-const TogglableBox = ({isToggled, toggle}) =>
-    <div style={{
-        width: 20,
-        height: 20,
-        backgroundColor: isToggled ? "#555"  : "#bbb",
-        margin: 2,
-        padding: 0,
-        display: "inline-block",
-        borderRadius: "1px"
-    }} 
-    onClick={toggle}/>
-
-
-export const Sequencer = ({useData, useBangInputHandle, useBangOutputHandle}) => {
-    const length = 8;
-
-    const outBangCallback = useBangOutputHandle("sequencer-out");
-    const [stepSeq] = useState(() => new StepSequencer((time, v, i) => v ? outBangCallback(time) : null, b("0:0:2")));
-    useBangInputHandle((time) => stepSeq.start(time), "sequencer-start");
-
-    const [data, setData] = useData({toggles: Array(length).fill(false)});
-    const toggleIth = useCallback(i => setData(data => ({toggles: data.toggles.map((v, j) => i == j ? !v : v)})), []);
-    useEffect(() => stepSeq.setValues(data.toggles), [data.toggles]);
-
-    return data.toggles.map((v, i) => <TogglableBox isToggled={v} toggle={() => toggleIth(i)} key={i}/>)
-
-}
- */
