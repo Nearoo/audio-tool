@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
-import { TickSignal } from "tone/build/esm/core/clock/TickSignal";
-import { b, globalScheduler, useOnGlobalSchedulerStop } from '../scheduler/scheduler';
-import { StepSequencer, Transport } from "../scheduler/sequencers";
+import { Space } from "antd";
 import _ from 'lodash';
+import { useEffect, useState } from "react";
+import { NumberInputer } from "../gui/gui";
+import { b, useOnGlobalSchedulerStop } from '../scheduler/scheduler';
+import { StepSequencer } from "../scheduler/sequencers";
 
 const TogglableBox = ({isToggled, toggle, isActive}) =>
     <div style={{
@@ -19,19 +20,48 @@ const TogglableBox = ({isToggled, toggle, isActive}) =>
 
 
 
-export const Sequencer = ({useData, useBangInputHandle, useBangOutputHandle, useBangOutputHandles}) => {
+export const Sequencer = ({useData, useBangInputHandle, useBangOutputHandles, useTitle}) => {
+    useTitle("Sequencer");
 
     const [noCols, setNoCols] = useData(16, "no-cols");
-    const [noRows, setNoRows] = useData(4, "no-rows");
+    const [noRows, setNoRows] = useData(2, "no-rows");
     // bangGrid[col][row]
     const [bangGrid, setBangGrid] = useData(
-        Array(noCols).fill().map(() => Array(noRows).fill(false)), "bang-grid", true
+        Array(noCols).fill().map(() => Array(noRows).fill(false)), "bang-grid"
     )
+
+    useEffect(() => {
+        setBangGrid(bangGrid => {
+            const currentCols = bangGrid.length;
+            const currentRows = bangGrid[0].length;
+            let newBangGrid = [...bangGrid];
+            if(currentCols < noCols){
+                const newCols = Array(noCols-currentCols).fill().map(() => Array(currentRows).fill(false));
+                newBangGrid = [...bangGrid, ...newCols];
+            } else if (currentCols > noCols){
+                newBangGrid = newBangGrid.slice(0, noCols);
+            }
+
+            if(currentRows < noRows){
+                newBangGrid = newBangGrid.map(col => {
+                    const newRows = Array(noRows - currentRows).fill(false);
+                    return [...col, ...newRows];
+                })
+            } else if (currentRows > noRows){
+                newBangGrid = newBangGrid.map(col => {
+                    return col.slice(0, noRows);
+                })
+
+            }
+            return newBangGrid;
+
+        })
+    }, [noCols, noRows])
 
     const flipRowCol = (rowI, colI) =>
         setBangGrid(grid => grid.map((col, colI_) => colI_ !== colI ? col : col.map((row, rowI_) => rowI_ !== rowI ? row : !row))); 
     const [stepCursor, setStepCursor] = useState(-1);
-    const bangOutCallbacks = useBangOutputHandles(bangGrid[0].map((row, rowi) => `bang-out-${rowi}`));
+    const bangOutCallbacks = useBangOutputHandles(noRows, "seq-out");
 
     const [stepSeq] = useState(() => new StepSequencer((time, v, i) =>{
         v.map((value, row) => {
@@ -46,11 +76,18 @@ export const Sequencer = ({useData, useBangInputHandle, useBangOutputHandle, use
 
     useOnGlobalSchedulerStop(() => setStepCursor(-1));
     const bangGridT = _.zip(...bangGrid);
-    return bangGridT.map((row, rowI) =>
+    return <>
+            <Space direction="horizontal" style={{paddingLeft: 2}}>
+                <NumberInputer defaultValue={noRows} onChange={v => setNoRows(v)} /> x
+                <NumberInputer defaultValue={noCols} onChange={v => setNoCols(v)} />
+            </Space>
+            {bangGridT.map((row, rowI) =>
                         <div key={rowI}>
                             {row.map((value, colI) =>
                                 <TogglableBox isToggled={value} toggle={() => flipRowCol(rowI, colI)} key={colI} isActive={stepCursor===colI}/>
                                 )}
                         </div>)
+            }
+            </>
 
 }

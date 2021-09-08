@@ -1,19 +1,20 @@
-import { Badge, Card } from 'antd';
-import { Component, createRef, useEffect, useState } from 'react';
+import { SaveOutlined } from '@ant-design/icons';
+import { Badge } from 'antd';
 import _ from 'lodash';
-import { Handle } from './handles';
+import { Component, useEffect, useMemo, useState } from 'react';
 import { globalAudioGraph } from './audio';
 import { globalBangGraph } from './bang';
-import { thisExpression } from '@babel/types';
-import { SaveOutlined } from '@ant-design/icons';
+import { FlowGraphContext } from './flow';
+import { Handle } from './handles';
 /** Contains the instances of all nodes, globally */
 const globalAllNodes = new Set();
 /** Returns list of all nodes as react-flow elements */
 export const getAllNodesAsReactFlowElements = () => Array.from(globalAllNodes).map(node => node.getAsReactFlowElement());
 
 /** Returns the node wrapped in the standard node container, with borders, handles, hooks, etc. */
-export const insideNodeContainer = (Node) => {
+export const insideNodeContainer = (Node, onHandleRemove) => {
     return class extends Component {
+        static contextType = FlowGraphContext;
         constructor(props){
             super(props);
             this.id = props.id;
@@ -41,6 +42,7 @@ export const insideNodeContainer = (Node) => {
 
         pullHandle = id => {
             this.setState(state => ({handles: _.reject(state.handles, {id})}));
+            this.context.deleteEdgesConnectedToHandle(id);
         }
 
         getData = () => {
@@ -171,13 +173,17 @@ export const insideNodeContainer = (Node) => {
                 }
 
                 useBangOutputHandles={
-                    (handleNames, position="right") => {
-                        const [nodeIdentifiers] = useState(() => handleNames.map(handleName => this.toBangOutputNodeIdentifier(handleName)));
-                        const [callbacks] = useState(() => nodeIdentifiers.map(identifier => globalBangGraph.registerOutputNode(identifier)));
-                        useEffect(() => {nodeIdentifiers.map(nodeIdentifier => this.pushHandle(nodeIdentifier, "bang", "source", position));
+                    (numHandles, handleNamePrefix="bang-handle", position="right") => {
+                        // Get identifier for every node
+                        const handleNames = useMemo(() => [...Array(numHandles).keys()].map(i => `${handleNamePrefix}-${i}`), [numHandles]);
+                        const nodeIdentifiers = useMemo(() => handleNames.map(handleName => this.toBangOutputNodeIdentifier(handleName)), [handleNames]);
+                        const callbacks = useMemo(() => nodeIdentifiers.map(identifier => globalBangGraph.getTriggerCallbackForOutputNode(identifier)), [nodeIdentifiers]);
+                        useEffect(() => {
+                            nodeIdentifiers.map(identifier => globalBangGraph.registerOutputNode(identifier));
+                            nodeIdentifiers.map(nodeIdentifier => this.pushHandle(nodeIdentifier, "bang", "source", position));
                             return () => {
                                 nodeIdentifiers.map(nodeIdentifier => globalBangGraph.deregisterOutputNode(nodeIdentifier));
-                                nodeIdentifiers.map(nodeIdentifier => this.pullHandle(nodeIdentifier))}}, handleNames);
+                                nodeIdentifiers.map(nodeIdentifier => this.pullHandle(nodeIdentifier))}}, [nodeIdentifiers]);
                         return callbacks;
                     }
                 }
@@ -223,16 +229,19 @@ export const insideNodeContainer = (Node) => {
 
             const savePresetBadge = <span style={{paddingLeft: 5}}><Badge count={<SaveOutlined />} onClick={() => console.log(this.data)}/></span>
 
-            const getPctForHandleNo = no => {
-                const minPct = 20;
-                const maxPct = 100;
-                const offset = maxPct - minPct;
-                const relOffset = offset / (this.state.handles.length-1);
-                const pct = minPct + relOffset*no;
-                return `${pct}%`;
+            const minOffset = 40;
+            const offsetStep = 22;
+            const offsets = {
+                left: minOffset,
+                right: minOffset
+            }
+            const getOffsetForHandleOfSide = side => {
+                const offset = offsets[side];
+                offsets[side] += offsetStep;
+                return `${offset}px`;
             }
             return <div style={outerStyle} key={this.id}>
-                {this.state.handles.map((props, i) => <Handle {...props} key={props.id} parentId={this.id} style={{top: getPctForHandleNo(i)}} />)}
+                {this.state.handles.map(props => <Handle {...props} key={props.id} parentId={this.id} style={{top: getOffsetForHandleOfSide(props.position)}} />)}
                 <div style={titleStyle}>{this.state.title}{savePresetBadge}</div>
                 <div style={contentStyle} className="nodrag">{this.nodeComponent}</div>
             </div>

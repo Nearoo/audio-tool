@@ -1,10 +1,7 @@
 
-import { nodeTypes } from './nodeTypes';
-import { insideNodeContainer } from '../graph/nodeContainer';
-import { Card, Collapse, List } from 'antd';
-import Title from 'antd/lib/skeleton/Title';
-
+import { Collapse, List } from 'antd';
 import { presets } from './presets';
+
 
 export const PresetBrowser = (props) => {
     return <Collapse style={{margin: 10}}>
@@ -19,7 +16,7 @@ export const PresetBrowser = (props) => {
                             key={item.name}
                             draggable
                             onDragStart={ev => {
-                                ev.dataTransfer.setData("app/audio-tool/preset-dnd", JSON.stringify({type: typeName, data: item.data}));
+                                ev.dataTransfer.setData("audio-tool/node-preset", JSON.stringify({type: typeName, data: item.data}));
                                 ev.dataTransfer.effectAllowed = "move";
                                 }}>
                             {item.name}

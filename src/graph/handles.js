@@ -1,5 +1,5 @@
-import { Component, useEffect } from 'react';
-import { Handle as FlowHandle, useUpdateNodeInternals, updateNo } from 'react-flow-renderer';
+import { useEffect } from 'react';
+import { Handle as FlowHandle, useUpdateNodeInternals } from 'react-flow-renderer';
 
 const BaseHandle = props =>{
     return <FlowHandle {...props} style={{...props.style, width: 15, height: 15, ...props.style}} />
@@ -21,7 +21,7 @@ export const Handle = ({kind, parentId, ...props}) => {
 
     // Required to make react-flow update internal state on dynamic handle creation
     const updateNodeInternals = useUpdateNodeInternals();
-    useEffect(() => updateNodeInternals(parentId), []);
+    useEffect(() => updateNodeInternals(parentId), [props.style]);
 
     if(!(kind in handleKinds)){
         throw `Unknown handle kind ${kind}`

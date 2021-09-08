@@ -18,7 +18,11 @@ export class BangGraph {
         if(!(nodeIdentifier in this.triggererMap)){
             this.triggererMap[nodeIdentifier] = new Set();
         }
-        const callback = (time, data) => this.triggererMap[nodeIdentifier].forEach(
+        return this.getTriggerCallbackForOutputNode(nodeIdentifier);
+    }
+
+    getTriggerCallbackForOutputNode = nodeIdentifier => {
+        const callback = (time, data) => (this.triggererMap[nodeIdentifier] ?? new Set()).forEach(
             triggeree => this.triggereeMap[triggeree](time, data)
         );
         return callback;
