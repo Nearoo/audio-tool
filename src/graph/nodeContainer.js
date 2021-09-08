@@ -2,6 +2,7 @@ import { SaveOutlined } from '@ant-design/icons';
 import { Badge } from 'antd';
 import _ from 'lodash';
 import { Component, useEffect, useMemo, useState } from 'react';
+import usePrevious, { useEffectWithPrevious } from '../common/hooks';
 import { globalAudioGraph } from './audio';
 import { globalBangGraph } from './bang';
 import { FlowGraphContext } from './flow';
@@ -24,10 +25,6 @@ export const insideNodeContainer = (Node, onHandleRemove) => {
                 handles: [],
             }
             
-            // Used to assign unique ids to every useData callsite
-            this.useDataCallsiteIdCounter = 0;
-            // this.data[callsiteId] = data for that useData at callsite callsiteId
-            this.data = this.props.data ?? {};
         }
 
         createUniqueId = () => {
@@ -43,10 +40,6 @@ export const insideNodeContainer = (Node, onHandleRemove) => {
         pullHandle = id => {
             this.setState(state => ({handles: _.reject(state.handles, {id})}));
             this.context.deleteEdgesConnectedToHandle(id);
-        }
-
-        getData = () => {
-            return this.data;
         }
 
         toAudioNodeIdentifier = handleName =>
@@ -112,33 +105,37 @@ export const insideNodeContainer = (Node, onHandleRemove) => {
 
         componentDidMount = () => {
             globalAllNodes.add(this);
-            this.nodeComponent = <Node 
+        }
+
+        componentWillUnmount = () => {
+           globalAllNodes.delete(this);
+        }
+
+        getAsReactFlowElement = () => {
+            return {
+                data: this.getData(),
+                id: this.id,
+                type: this.type
+            };
+        }
+
+        render(){
+            const node = <Node 
+                key={this.id}
+
                 useTitle={title => useEffect(() => this.setState({title}), [title])}
+
                 useData={(initialData, dataId, doClear) => {
-                    // Returns an unique id for every callsite (not starting at 0, but unique anyway).
-                    const [callSiteId] = useState(() => (dataId === undefined) ? this.useDataCallsiteIdCounter++ : dataId);
+                    const data = (this.props.data ?? {})[dataId] ?? initialData;
+                    const [r, setR] = useState(false);
+                    const forceRerender = () => setR(!r);
+                    const setData = dataOrF => {
+                        const newData = dataOrF instanceof Function ? dataOrF(data) : dataOrF;
+                        this.context.setNodeData(this.id, {...this.props.data, [dataId]: newData});
+                        forceRerender();
 
-                    // state = the saved data, if it exists, or the initial data
-                    const [state, setState] = useState(() => {
-                        const alreadyStored = callSiteId in (this.props.data ?? {}) && !doClear;
-                        return alreadyStored ? this.props.data[callSiteId] : initialData;
-                    });
-
-                    // Set this.data the first time
-                    useEffect(() => {this.data[callSiteId] = state}, []);
-
-                    // setData performs both this.data = data and setState(data)
-                    const setData = data => {
-                        // Set this.data
-                        if(data instanceof Function){
-                            this.data[callSiteId] = data(this.data[callSiteId]);
-                        } else {
-                            this.data[callSiteId] = data;
-                        }
-                        setState(data);
-                    }
-
-                    return [state, setData];
+                    };
+                    return [data, setData];
                 }}
 
                 useAudioInputHandle={
@@ -178,31 +175,24 @@ export const insideNodeContainer = (Node, onHandleRemove) => {
                         const handleNames = useMemo(() => [...Array(numHandles).keys()].map(i => `${handleNamePrefix}-${i}`), [numHandles]);
                         const nodeIdentifiers = useMemo(() => handleNames.map(handleName => this.toBangOutputNodeIdentifier(handleName)), [handleNames]);
                         const callbacks = useMemo(() => nodeIdentifiers.map(identifier => globalBangGraph.getTriggerCallbackForOutputNode(identifier)), [nodeIdentifiers]);
-                        useEffect(() => {
-                            nodeIdentifiers.map(identifier => globalBangGraph.registerOutputNode(identifier));
-                            nodeIdentifiers.map(nodeIdentifier => this.pushHandle(nodeIdentifier, "bang", "source", position));
-                            return () => {
-                                nodeIdentifiers.map(nodeIdentifier => globalBangGraph.deregisterOutputNode(nodeIdentifier));
-                                nodeIdentifiers.map(nodeIdentifier => this.pullHandle(nodeIdentifier))}}, [nodeIdentifiers]);
+
+                        useEffectWithPrevious((previousNodeIdentifiers) => {
+                            const newNodeIdentifiers = nodeIdentifiers.slice(previousNodeIdentifiers.length);
+                            const discardingNodeIdentifiers = previousNodeIdentifiers.slice(nodeIdentifiers.length);
+                            newNodeIdentifiers.map(nodeIdentifier => {
+                                globalBangGraph.registerOutputNode(nodeIdentifier);
+                                this.pushHandle(nodeIdentifier, "bang", "source", "right")
+                            });
+                            discardingNodeIdentifiers.map(nodeIdentifier => {
+                                globalBangGraph.deregisterOutputNode(nodeIdentifier);
+                                this.pullHandle(nodeIdentifier);
+                            });
+                        }, nodeIdentifiers, []);
                         return callbacks;
                     }
                 }
                 />
-        }
 
-        componentWillUnmount = () => {
-           globalAllNodes.delete(this);
-        }
-
-        getAsReactFlowElement = () => {
-            return {
-                data: this.getData(),
-                id: this.id,
-                type: this.type
-            };
-        }
-
-        render(){
             const outerStyle = {
                 border: `1px solid ${this.props.selected ? "black" : "lightgrey"}`,
                 minWidth: "30px",
@@ -240,10 +230,11 @@ export const insideNodeContainer = (Node, onHandleRemove) => {
                 offsets[side] += offsetStep;
                 return `${offset}px`;
             }
+            
             return <div style={outerStyle} key={this.id}>
                 {this.state.handles.map(props => <Handle {...props} key={props.id} parentId={this.id} style={{top: getOffsetForHandleOfSide(props.position)}} />)}
                 <div style={titleStyle}>{this.state.title}{savePresetBadge}</div>
-                <div style={contentStyle} className="nodrag">{this.nodeComponent}</div>
+                <div style={contentStyle} className="nodrag">{node}</div>
             </div>
         }
     }

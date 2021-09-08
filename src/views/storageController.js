@@ -1,24 +1,34 @@
 import { Button, Col, Input, Row } from 'antd';
 import { useCallback, useContext, useEffect } from "react";
 import { FlowGraphContext } from "../graph/flow";
-import { defaultGraph } from "./defaultGraph";
+import { defaultFlowConfiguration } from "./defaultGraph";
 
 export const StorageController  = () => {
     const flowGraph = useContext(FlowGraphContext);
 
+    const setGraphConfig = useCallback(flowConfig => {
+        flowGraph.setElements(flowConfig.elements);
+        const transform = {x: flowConfig.position[0], y: flowConfig.position[1]+100, zoom: flowConfig.zoom};
+        flowGraph.reactFlowInstance?.setTransform(transform);
+    }, [flowGraph]);
+
+    const getGraphConfig = useCallback(() =>
+        flowGraph.reactFlowInstance.toObject());
+
     const saveGraph = useCallback(() => {
-        localStorage.setItem("graph", JSON.stringify(flowGraph.elements));
-    }, [flowGraph.elements]);
+        localStorage.setItem("graph", JSON.stringify(getGraphConfig()));
+    }, [flowGraph]);
 
     const loadGraph = useCallback(() => {
-        flowGraph.setElements(JSON.parse(localStorage.getItem("graph")) ?? defaultGraph);
+        const config = JSON.parse(localStorage.getItem("graph") ?? defaultFlowConfiguration);
+        setGraphConfig(config);
     }, [flowGraph]);
 
     const resetGraph = useCallback(() => {
-        flowGraph.setElements(defaultGraph);
+        setGraphConfig(defaultFlowConfiguration);
     }, [flowGraph]);
 
-    useEffect(() => loadGraph(), []);
+    useEffect(() => flowGraph.reactFlowInstance && loadGraph(), [flowGraph.reactFlowInstance]);
     return <Input.Group style={{padding: 5}}>
         <Row gutter={5}>
             <Col>
