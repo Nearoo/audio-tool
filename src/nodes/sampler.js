@@ -1,13 +1,24 @@
-import { useEffect, useImperativeHandle, useState } from 'react'
+import { useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { Player } from 'tone';
 import { Button, Checkbox, Col, Input, Row } from "antd";
-import { useOnGlobalSchedulerStop } from '../scheduler/scheduler';
+import { s, useOnGlobalSchedulerStop } from '../scheduler/scheduler';
 
 export const Sampler = ({useTitle, useAudioOutputHandle, useBangInputHandle, useData}) => {
     useTitle("Sampler");
     const [player] = useState(() => new Player());
+    // For debugging purposes, keep track of last playback time, throw silently if it's non-increasing
+    const lastPlaybackRef = useRef();
+    const startPlayer = time => {
+        const lastPb = lastPlaybackRef.current ?? s(-1);
+        if(lastPb.isOnOrAfter(time))
+            console.error(`Tried scheduling player playback in non-increasing fashion. Last playback: ${lastPb}, current playback: ${time}`)
+        else{
+            lastPlaybackRef.current = time;
+            player.start(time.toSeconds());
+        }           
+    }
     useAudioOutputHandle(player.output, "audio-out");
-    useBangInputHandle(time =>player.start(time.toSeconds()), "player-start");
+    useBangInputHandle(time =>startPlayer(time), "player-start");
 
     const [loop, setLoop] = useData(false, "loop");
     const [fpath, setFPath] = useData("808/Clap", "path");
