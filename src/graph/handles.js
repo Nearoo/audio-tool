@@ -1,15 +1,41 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Handle as FlowHandle, useUpdateNodeInternals } from 'react-flow-renderer';
+
+import { globalBangGraph } from './bang';
 
 const BaseHandle = props =>{
     return <FlowHandle {...props} style={{...props.style, width: 15, height: 15, ...props.style}} />
 }
     
 const AudioHandle = (props) => 
-    <BaseHandle {...props} style={{borderRadius: "100%", backgroundColor: "orange"}} />
+    <BaseHandle {...props} style={{borderRadius: "100%", backgroundColor: "lightblue"}} />
 
-const BangHandle = (props) => 
-    <BaseHandle {...props} style={{borderRadius: 0, backgroundColor: "grey", border: 0, ...props.style}} />
+
+const SourceBangHandle = (props) => {
+    const [isBanging, setBanging] = useState(false);
+    const bang = useCallback((time) => time.scheduleDraw(() => {setBanging(true); setTimeout(() => setBanging(false), 100)}), []);
+    const bangReciverNodeId = useMemo(() =>  `bangReceiverForHandleFlashing(${props.id})`, []);
+
+    useEffect(() => {globalBangGraph.registerInputNode(bangReciverNodeId, bang);
+        return () => globalBangGraph.deregisterInputNode(bangReciverNodeId)}, []);
+    useEffect(() => {globalBangGraph.connectNodes(props.id, bangReciverNodeId);
+        return () => globalBangGraph.disconnectNodes(props.id, bangReciverNodeId)}, [])
+    
+    return <BaseHandle {...props} style={{borderRadius: 0, backgroundColor: isBanging ? "orange" : "grey", border: 0, ...props.style}} />
+}
+
+const TargetBangHandle = (props) => {
+    return <BaseHandle {...props} style={{borderRadius: 0, backgroundColor: "lightgrey", border: 0, ...props.style}} />
+}
+
+const BangHandle = (props) => {
+    if(props.type === "source")
+        return <SourceBangHandle {...props} />
+    else
+        return <TargetBangHandle {...props} />
+}
+
+    
 
 const handleKinds = {
     audio: AudioHandle,
