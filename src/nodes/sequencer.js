@@ -1,6 +1,6 @@
-import { Space } from "antd";
+import { Checkbox, Space } from "antd";
 import _ from 'lodash';
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { NumberInputer } from "../gui/gui";
 import { b, useOnGlobalSchedulerStop } from '../scheduler/scheduler';
 import { StepSequencer } from "../scheduler/sequencers";
@@ -63,16 +63,21 @@ export const Sequencer = ({useData, useBangInputHandle, useBangOutputHandles, us
     const [stepCursor, setStepCursor] = useState(-1);
     const bangOutCallbacks = useBangOutputHandles(noRows, "seq-out");
 
-    const [stepSeq] = useState(() => new StepSequencer((time, v, i) =>{
-        v.map((value, row) => {
+    const [stepSeq] = useState(() => new StepSequencer((() => {}), b("0:0:1")));
+    const stepSeqCallback = useCallback((time, col, i) => {
+        col.map((value, row) => {
             if(value)
                 bangOutCallbacks[row](time);
         });
         time.scheduleDraw(() => setStepCursor(i));
-    }, b("0:0:1")));
+    }, [bangOutCallbacks]);
 
     useBangInputHandle((time) => stepSeq.start(time), "sequencer-start");
     useEffect(() => stepSeq.setValues(bangGrid), [bangGrid]);
+    useEffect(() => stepSeq.setCallback(stepSeqCallback), [stepSeqCallback]);
+
+    const [doLoop, setDoLoop] = useData(true, "do-loop");
+    useEffect(() => stepSeq.setDoLoop(doLoop), [doLoop]);
 
     useOnGlobalSchedulerStop(() => setStepCursor(-1));
     const bangGridT = _.zip(...bangGrid);
@@ -80,6 +85,7 @@ export const Sequencer = ({useData, useBangInputHandle, useBangOutputHandles, us
             <Space direction="horizontal" style={{paddingLeft: 2}}>
                 <NumberInputer defaultValue={noRows} onChange={v => setNoRows(v)} /> x
                 <NumberInputer defaultValue={noCols} onChange={v => setNoCols(v)} />
+                <Checkbox checked={doLoop} onChange={e => setDoLoop(e.target.checked)}/>Loop
             </Space>
             {bangGridT.map((row, rowI) =>
                         <div key={rowI}>

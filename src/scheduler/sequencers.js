@@ -5,6 +5,7 @@ import { TransportTime } from "tone";
 import { TickSignal } from "tone/build/esm/core/clock/TickSignal";
 import { theWindow } from "tone/build/esm/core/context/AudioContext";
 import { assert } from "tone/build/esm/core/util/Debug";
+import { tsImportEqualsDeclaration } from "@babel/types";
 
 
 /**
@@ -179,13 +180,19 @@ export class Transport {
 }
 
 export class StepSequencer{
-    constructor(callback, interval, values=[]){
+    constructor(callback, interval, values=[], doLoop=true){
         this.callback = callback;
         this.interval = interval;
+        this.values = values;
+        this.doLoop = doLoop;
 
-        this.transport = new Transport(interval.multiply(Math.max(values.length, 1)));
-        this.transportEventIds = [];
-        this.transport.setLoopInterval(interval);
+        this.transport = new Transport();
+
+        // Update transport by setting all values also through setters
+        this.setInterval(interval);
+        this.setDoLoop(doLoop);
+        this.setCallback(callback);
+        this.setValues(values);
     }
 
     debug = msg => {
@@ -204,10 +211,24 @@ export class StepSequencer{
         this.setInterval(this.interval);
     }
 
+    setCallback = callback => {
+        this.callback = callback;
+    }
+
     setInterval = interval => {
         this.interval = interval;
-        this.transport.setLoopInterval(this.interval.multiply(this.values.length));
+        if(this.doLoop)
+            this.transport.setLoopInterval(this.interval.multiply((Math.max(1, this.values.length))));
+        else
+            this.transport.setLoopInterval(never);
     }
+
+    setDoLoop = doLoop => {
+        this.doLoop = doLoop;
+        this.setInterval(this.interval);
+    }
+
+    
 
     start = time => this.transport.start(time);
     stop = time => this.transport.stop(time);

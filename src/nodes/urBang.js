@@ -4,7 +4,7 @@ import { globalScheduler, s, useOnGlobalSchedulerStart, useOnGlobalSchedulerStop
 
 
 export const UrBang = ({useTitle, useBangOutputHandle}) => {
-    useTitle();
+    useTitle("UrBang");
 
     // Use isRunning state following global scheduler state
     const [isRunning, setRunning] = useState(false);
