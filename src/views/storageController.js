@@ -3,6 +3,8 @@ import { useCallback, useContext, useEffect } from "react";
 import { FlowGraphContext } from "../graph/flow";
 import { defaultFlowConfiguration } from "./defaultGraph";
 
+const storageKey = "audio-tool";
+
 export const StorageController  = () => {
     const flowGraph = useContext(FlowGraphContext);
 
@@ -16,12 +18,13 @@ export const StorageController  = () => {
         flowGraph.reactFlowInstance.toObject());
 
     const saveGraph = useCallback(() => {
-        localStorage.setItem("graph", JSON.stringify(getGraphConfig()));
+        localStorage.setItem(storageKey, JSON.stringify(getGraphConfig()));
     }, [flowGraph]);
 
     const loadGraph = useCallback(() => {
-        const config = JSON.parse(localStorage.getItem("graph")) ?? defaultFlowConfiguration;
+        const config = JSON.parse(localStorage.getItem(storageKey)) ?? defaultFlowConfiguration;
         setGraphConfig(config);
+        console.log("Loaded config", config);
     }, [flowGraph]);
 
     const resetGraph = useCallback(() => {
