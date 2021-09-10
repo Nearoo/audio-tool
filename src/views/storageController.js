@@ -20,7 +20,7 @@ export const StorageController  = () => {
     }, [flowGraph]);
 
     const loadGraph = useCallback(() => {
-        const config = JSON.parse(localStorage.getItem("graph") ?? defaultFlowConfiguration);
+        const config = JSON.parse(localStorage.getItem("graph")) ?? defaultFlowConfiguration;
         setGraphConfig(config);
     }, [flowGraph]);
 

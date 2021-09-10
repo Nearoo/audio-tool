@@ -27,11 +27,6 @@ export const insideNodeContainer = (Node, onHandleRemove) => {
             
         }
 
-        createUniqueId = () => {
-            this._idCounter = (this._idCounter ?? -1) + 1;
-            return this._idCounter;
-        }
-
         pushHandle = (id, kind, type, position) => {
             const handle = {id, kind, type, position};
             this.setState(state => ({handles: [...state.handles, handle]}));
@@ -43,13 +38,13 @@ export const insideNodeContainer = (Node, onHandleRemove) => {
         }
 
         toAudioNodeIdentifier = handleName =>
-            `audioNode(${this.id}//${handleName})`;
+            `audioHandle(name='${handleName}', node='${this.id}')`;
         
         toBangInputNodeIdentifier = handleName => 
-            `bangInputNode(${this.id}//${handleName})`;
+            `bangInputHandle(name='${handleName}', node='${this.id}')`;
         
         toBangOutputNodeIdentifier = handleName => 
-            `bangOutputNode(${this.id}//${handleName})`
+            `bangOutputHandle(name='${handleName}', node='${this.id}')`
 
         addAudioInputHandle = (audioNode, handleName, position="top") => {
             const nodeIdentifier = this.toAudioNodeIdentifier(handleName);

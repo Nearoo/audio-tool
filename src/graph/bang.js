@@ -6,12 +6,6 @@ export class BangGraph {
         this.triggereeMap = {};
         /** Maps id -> trigeree id sets */
         this.triggererMap = {};
-        this.idCounter = 0;
-    }
-
-    createUniqueId = () => {
-        this.idCounter += 1;
-        return this.idCounter;
     }
 
     registerOutputNode = (nodeIdentifier) => {

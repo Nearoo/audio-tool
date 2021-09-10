@@ -4,12 +4,6 @@ export class AudioGraph {
     constructor(){
         /** Maps id -> audio node */
         this.nodeMap = {};
-        this.idCounter = 0;
-    }
-
-    createUniqueId = () => {
-        this.idCounter += 1;
-        return this.idCounter;
     }
 
     registerNode = (node, nodeIdentifier) => {

@@ -1,5 +1,6 @@
 import _ from 'lodash';
 import React, { Component } from 'react';
+import {v4 as uuidv4 } from 'uuid';
 
 export const FlowGraphContext = React.createContext({});
 
@@ -25,7 +26,7 @@ export class FlowGraphProvider extends Component {
     }
 
     createUniqueId = () => {
-        return this.state.elements.length + 1;
+        return uuidv4();
     }
 
     pushElement = element => {
@@ -53,12 +54,12 @@ export class FlowGraphProvider extends Component {
     }
 
     createNode = (type, position, data={}) => {
-        const id = `node(${type})-${this.createUniqueId()}`;
+        const id = this.createUniqueId();
         this.pushElement({type, id, position, data});
     }
 
     createEdge = (sourceNode, sourceHandle, targetNode, targetHandle, type) => {
-        const id = `edge(${sourceHandle} >> ${targetHandle})`;
+        const id = this.createUniqueId();
         this.pushElement({id, sourceHandle, targetHandle, source: sourceNode, target: targetNode, type});
     }
 
