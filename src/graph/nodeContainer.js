@@ -233,7 +233,7 @@ export const insideNodeContainer = (Node, onHandleRemove) => {
             
             return <div style={outerStyle} key={this.id}>
                 {this.state.handles.map(props => <Handle {...props} key={props.id} parentId={this.id} style={{top: getOffsetForHandleOfSide(props.position)}} />)}
-                <div style={titleStyle}>{this.state.title}{savePresetBadge}</div>
+                <div style={titleStyle}>{this.state.title}</div>
                 <div style={contentStyle} className="nodrag">{node}</div>
             </div>
         }
