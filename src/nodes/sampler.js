@@ -2,10 +2,11 @@ import { useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { Player } from 'tone';
 import { Button, Checkbox, Col, Input, Row } from "antd";
 import { s, useOnGlobalSchedulerStop } from '../scheduler/scheduler';
+import { useNew } from '../common/hooks';
 
 export const Sampler = ({useTitle, useAudioOutputHandle, useBangInputHandle, useData}) => {
     useTitle("Sampler");
-    const [player] = useState(() => new Player());
+    const player = useNew(Player)();
     // For debugging purposes, keep track of last playback time, throw silently if it's non-increasing
     const lastPlaybackRef = useRef();
     const startPlayer = time => {

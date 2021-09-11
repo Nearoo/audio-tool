@@ -19,3 +19,25 @@ export const useEffectWithPrevious = (callback, currentValue, firstValue) => {
     useEffect(() => callback(previousValue), [currentValue]);
     useEffect(() => () => callback(firstValue), []);
 }
+
+/**
+ * Convencience hook to instanciate classes inside functional react components.
+ * 
+ * Instead of 
+ * ```
+ * const fb = new FooBar(x, y, z);
+ * ```
+ * Simply write
+ * ```
+ * const fb = useNew(FooBar)(x, y, z);
+ * ```
+ * 
+ */
+export const useNew = (class_) => {
+    const classRef = useRef();
+    return (...args) => {
+      if(classRef.current === undefined)
+        classRef.current = new class_(...args);
+      return classRef.current;
+    }
+}
