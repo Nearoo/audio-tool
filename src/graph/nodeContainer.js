@@ -196,7 +196,7 @@ export const insideNodeContainer = (Node, onHandleRemove) => {
                 borderRadius: "2px",
                 boxShadow: "0px 0px 1px lightgrey",
                 backgroundColor: "white",
-                margin: "4px"
+                margin: "10px"
             }
 
             const titleStyle = {

@@ -4,11 +4,17 @@ import { Handle as FlowHandle, useUpdateNodeInternals } from 'react-flow-rendere
 import { globalBangGraph } from './bang';
 
 const BaseHandle = props =>{
-    return <FlowHandle {...props} style={{...props.style, width: 15, height: 15, ...props.style}} />
+    return <FlowHandle {...props} style={{...props.style, width: 20, height: 20, zIndex: -1, ...props.style}} />
 }
-    
+
+const posToBorderRadius = {
+    top: "100% 100% 0 0",
+    left: "100% 0 0 100%",
+    right: "0 100% 100% 0",
+    bottom: "0 0 100% 100%"
+}
 const AudioHandle = (props) => 
-    <BaseHandle {...props} style={{borderRadius: "100%", backgroundColor: "lightblue"}} />
+    <BaseHandle {...props} style={{borderRadius: posToBorderRadius[props.position], backgroundColor: "lightblue"}} />
 
 
 const SourceBangHandle = (props) => {
@@ -20,7 +26,6 @@ const SourceBangHandle = (props) => {
         return () => globalBangGraph.deregisterInputNode(bangReciverNodeId)}, []);
     useEffect(() => {globalBangGraph.connectNodes(props.id, bangReciverNodeId);
         return () => globalBangGraph.disconnectNodes(props.id, bangReciverNodeId)}, [])
-    
     return <BaseHandle {...props} style={{borderRadius: 0, backgroundColor: isBanging ? "orange" : "grey", border: 0, ...props.style}} />
 }
 
