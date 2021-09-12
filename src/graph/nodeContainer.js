@@ -1,8 +1,8 @@
 import { SaveOutlined } from '@ant-design/icons';
 import { Badge } from 'antd';
 import _ from 'lodash';
-import { Component, useEffect, useMemo, useState } from 'react';
-import usePrevious, { useEffectWithPrevious } from '../common/hooks';
+import { Component, useCallback, useEffect, useMemo, useState } from 'react';
+import { usePreviousCurrentEffect } from '../common/hooks';
 import { globalAudioGraph } from './audio';
 import { globalBangGraph } from './bang';
 import { FlowGraphContext } from './flow';
@@ -167,22 +167,27 @@ export const insideNodeContainer = (Node, onHandleRemove) => {
                 useBangOutputHandles={
                     (numHandles, handleNamePrefix="bang-handle", position="right") => {
                         // Get identifier for every node
-                        const handleNames = useMemo(() => [...Array(numHandles).keys()].map(i => `${handleNamePrefix}-${i}`), [numHandles]);
-                        const nodeIdentifiers = useMemo(() => handleNames.map(handleName => this.toBangOutputNodeIdentifier(handleName)), [handleNames]);
-                        const callbacks = useMemo(() => nodeIdentifiers.map(identifier => globalBangGraph.getTriggerCallbackForOutputNode(identifier)), [nodeIdentifiers]);
+                        const toHandleName = useCallback(i => `${handleNamePrefix}-${i}`, []);
+                        const toNodeIdentifier = useCallback(i => this.toBangOutputNodeIdentifier(toHandleName(i)), []);
+                        const getNodeIdentifiers = useCallback(numHandles => [...Array(numHandles).keys()].map(i => toNodeIdentifier(i)), []);
+                        const callbacks = useMemo(() => getNodeIdentifiers(numHandles).map(identifier => globalBangGraph.getTriggerCallbackForOutputNode(identifier)), [numHandles]);
 
-                        useEffectWithPrevious((previousNodeIdentifiers) => {
-                            const newNodeIdentifiers = nodeIdentifiers.slice(previousNodeIdentifiers.length);
-                            const discardingNodeIdentifiers = previousNodeIdentifiers.slice(nodeIdentifiers.length);
-                            newNodeIdentifiers.map(nodeIdentifier => {
+                        usePreviousCurrentEffect((previousNum, currentNum) => {
+                            // Calculate ids of added / removed node identifiers
+                            const allNodeIdentifiers = getNodeIdentifiers(Math.max(previousNum, currentNum));
+                            const addedNodeIdentifiers = allNodeIdentifiers.slice(previousNum);
+                            const removedNodeIdentnfiers = allNodeIdentifiers.slice(currentNum);
+                            // Add all new nodeIdentifiers
+                            addedNodeIdentifiers.map(nodeIdentifier => {
                                 globalBangGraph.registerOutputNode(nodeIdentifier);
-                                this.pushHandle(nodeIdentifier, "bang", "source", "right")
+                                this.pushHandle(nodeIdentifier, "bang", "source", position)
                             });
-                            discardingNodeIdentifiers.map(nodeIdentifier => {
+                            // Remove all nodeIdentifiers no longer present
+                            removedNodeIdentnfiers.map(nodeIdentifier => {
                                 globalBangGraph.deregisterOutputNode(nodeIdentifier);
                                 this.pullHandle(nodeIdentifier);
                             });
-                        }, nodeIdentifiers, []);
+                        }, numHandles, 0);
                         return callbacks;
                     }
                 }
@@ -211,8 +216,6 @@ export const insideNodeContainer = (Node, onHandleRemove) => {
                 padding: "3px",
                 cursor: "pointer"
             }
-
-            const savePresetBadge = <span style={{paddingLeft: 5}}><Badge count={<SaveOutlined />} onClick={() => console.log(this.data)}/></span>
 
             const minOffset = 40;
             const offsetStep = 22;
