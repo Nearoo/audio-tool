@@ -14,27 +14,6 @@ export const usePrevious = (value, firstValue) => {
   return ref.current ?? firstValue;
 }
 
-
-/** 
- * Works like useEffect but passes the previous value to the callback.
- * The first time the callback is called, as well as just before the component unmounts,
- * the first value is used passed.
- * 
- * This is useful to calculate the "change" of a value every time the component updates, starting and
- * ending with a "null" value.
- * 
- * So e.g. for lists, the "null" element would be `[]`. Then the code
- * 
- * ```
- * const current = ...;
- * useEffectWithPrevious(prev => deltaCallback(prev, current), current, []);
- * ```
- * 
- * would cause `deltaCallback` to be called like 
- * 
- * `deltaCallback([], [...]) -> deltaCallback([...], [...]) -> ... -> deltaCallback([...], [])`
- */
-
 /**
  * Works similar to useEffect, but calls the callback with two values every time the "dependency"
  * value changes: With the _previous_ value of the dependency, and the _current_ value. This can be used
