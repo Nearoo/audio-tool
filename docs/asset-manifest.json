@@ -1,0 +1,25 @@
+{
+  "files": {
+    "main.css": "/audio-tool/static/css/main.a4a20492.chunk.css",
+    "main.js": "/audio-tool/static/js/main.6aeadc2f.chunk.js",
+    "main.js.map": "/audio-tool/static/js/main.6aeadc2f.chunk.js.map",
+    "runtime-main.js": "/audio-tool/static/js/runtime-main.0ee6e009.js",
+    "runtime-main.js.map": "/audio-tool/static/js/runtime-main.0ee6e009.js.map",
+    "static/css/2.786ae0dd.chunk.css": "/audio-tool/static/css/2.786ae0dd.chunk.css",
+    "static/js/2.ee1fac06.chunk.js": "/audio-tool/static/js/2.ee1fac06.chunk.js",
+    "static/js/2.ee1fac06.chunk.js.map": "/audio-tool/static/js/2.ee1fac06.chunk.js.map",
+    "static/js/3.76fa2181.chunk.js": "/audio-tool/static/js/3.76fa2181.chunk.js",
+    "static/js/3.76fa2181.chunk.js.map": "/audio-tool/static/js/3.76fa2181.chunk.js.map",
+    "index.html": "/audio-tool/index.html",
+    "static/css/2.786ae0dd.chunk.css.map": "/audio-tool/static/css/2.786ae0dd.chunk.css.map",
+    "static/css/main.a4a20492.chunk.css.map": "/audio-tool/static/css/main.a4a20492.chunk.css.map",
+    "static/js/2.ee1fac06.chunk.js.LICENSE.txt": "/audio-tool/static/js/2.ee1fac06.chunk.js.LICENSE.txt"
+  },
+  "entrypoints": [
+    "static/js/runtime-main.0ee6e009.js",
+    "static/css/2.786ae0dd.chunk.css",
+    "static/js/2.ee1fac06.chunk.js",
+    "static/css/main.a4a20492.chunk.css",
+    "static/js/main.6aeadc2f.chunk.js"
+  ]
+}
